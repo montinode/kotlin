@@ -16,7 +16,7 @@ import kotlin.contracts.*
 // TESTCASE NUMBER: 1
 inline fun <T : Function<*>> T.case_1(block: () -> Unit) {
     contract {
-        callsInPlace(this@case_1, InvocationKind.EXACTLY_ONCE)
+        <!WRONG_INVOCATION_KIND!>callsInPlace(this@case_1, InvocationKind.EXACTLY_ONCE)<!>
         callsInPlace(block, InvocationKind.EXACTLY_ONCE)
     }
     block()

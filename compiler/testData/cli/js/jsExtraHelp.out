@@ -212,6 +212,7 @@ where advanced options include:
                              -Xheader-mode-type=any: Can be used for any downstream dependency which doesn't require linking.
   -Xignore-const-optimization-errors
                              Ignore all compilation exceptions while optimizing some constant expressions.
+  -Ximproved-alias-tracking  Enable experimental improved alias tracking.
   -Xinline-classes           Enable experimental inline classes.
   -Xintellij-plugin-root=<path> Path to 'kotlin-compiler.jar' or the directory where the IntelliJ IDEA configuration files can be found.
   -Xintrinsic-const-evaluation Enables `IntrinsicConstEvaluation` language feature.`

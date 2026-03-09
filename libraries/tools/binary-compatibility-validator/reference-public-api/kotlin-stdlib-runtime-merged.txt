@@ -3117,10 +3117,13 @@ public abstract interface class kotlin/contracts/ContractBuilder {
 	public abstract fun callsInPlace (Lkotlin/Function;Lkotlin/contracts/InvocationKind;)Lkotlin/contracts/CallsInPlace;
 	public abstract fun holdsIn (ZLkotlin/Function;)Lkotlin/contracts/HoldsIn;
 	public abstract fun implies (ZLkotlin/contracts/ReturnsNotNull;)V
+	public abstract fun local (Ljava/lang/Object;)V
+	public abstract fun resultFollows (Ljava/lang/Object;)V
 	public abstract fun returns ()Lkotlin/contracts/Returns;
 	public abstract fun returns (Ljava/lang/Object;)Lkotlin/contracts/Returns;
 	public abstract fun returnsNotNull ()Lkotlin/contracts/ReturnsNotNull;
 	public abstract fun returnsResultOf (Lkotlin/Function;)V
+	public abstract fun scopedCalls (Lkotlin/Function;)V
 }
 
 public final class kotlin/contracts/ContractBuilder$DefaultImpls {
