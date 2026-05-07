@@ -236,10 +236,13 @@ fun linkWasmIr(moduleConfiguration: WasmIrModuleConfiguration): WasmModule {
 
     val wasmCommandModuleInitialization = configuration.get(WasmConfigurationKeys.WASM_COMMAND_MODULE) ?: false
 
+    val wasmUseStackSwitching = configuration.wasmUseStackSwitching
+
     return wasmCompiledModuleFragment.linkWasmCompiledFragments(
         multimoduleOptions = multimoduleParameters,
         exceptionTagType = exceptionTagType,
         wasmCommandModuleInitialization = wasmCommandModuleInitialization,
+        useStackSwitching = wasmUseStackSwitching,
     )
 }
 
