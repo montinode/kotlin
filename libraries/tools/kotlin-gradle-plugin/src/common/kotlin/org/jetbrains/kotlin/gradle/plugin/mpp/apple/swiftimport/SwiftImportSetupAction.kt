@@ -28,7 +28,7 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.apple.sdk
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.swiftimport.XcodebuildDefFileUtils.DUMP_FILE_ARGS_SEPARATOR
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.swiftimport.GenerateSyntheticLinkageImportProject.Companion.SYNTHETIC_IMPORT_TARGET_MAGIC_NAME
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.swiftimport.GenerateSyntheticLinkageImportProject.SyntheticProductType
-import org.jetbrains.kotlin.gradle.plugin.mpp.apple.swiftimport.SwiftPMDependency.Platform
+import org.jetbrains.kotlin.gradle.plugin.mpp.apple.swiftimport.SwiftPMDependencyForIde.Platform
 import org.jetbrains.kotlin.gradle.plugin.testTaskName
 import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeSimulatorTest
 import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest
@@ -38,6 +38,7 @@ import org.jetbrains.kotlin.gradle.tasks.locateOrRegisterTask
 import org.jetbrains.kotlin.gradle.tasks.registerTask
 import org.jetbrains.kotlin.gradle.utils.addConfigurationMetrics
 import org.jetbrains.kotlin.gradle.utils.getAttributeSafely
+import org.jetbrains.kotlin.gradle.utils.getFile
 import org.jetbrains.kotlin.gradle.utils.lowerCamelCaseName
 import org.jetbrains.kotlin.konan.target.HostManager
 import org.jetbrains.kotlin.statistics.metrics.BooleanMetrics
@@ -748,9 +749,14 @@ internal fun searchForGradlew(path: File?): File? {
     return searchForGradlew(path.parentFile)
 }
 
+internal fun Project.directSwiftPMDependencies(): Provider<Set<SwiftPMDependency>> {
+    val swiftPMImportExtension = locateOrRegisterSwiftPMDependenciesExtension()
+    return provider { swiftPMImportExtension.swiftPMDependencies }
+}
+
 internal fun Project.hasDirectOrTransitiveSwiftPMDependencies(): Provider<Boolean> {
     val swiftPMImportExtension = locateOrRegisterSwiftPMDependenciesExtension()
-    val hasDirectSwiftPMDependencies = provider { swiftPMImportExtension.swiftPMDependencies.isNotEmpty() }
+    val hasDirectSwiftPMDependencies = directSwiftPMDependencies().map { it.isNotEmpty() }
     return transitiveSwiftPMDependenciesProvider().map { transitiveDependencies ->
         hasDirectSwiftPMDependencies.get() || transitiveDependencies.metadataByDependencyIdentifier.values.any { it.dependencies.isNotEmpty() }
     }
@@ -842,5 +848,28 @@ internal fun Project.swiftPMImportIdeModelProvider(): Provider<SwiftPMImportIdeM
             hasDirectOrTransitiveSwiftPMDependencies,
             ("${project.path}:${IntegrateLinkagePackageIntoXcodeProject.TASK_NAME}").replace("::", ":"),
             SYNTHETIC_IMPORT_TARGET_MAGIC_NAME,
+            project.directSwiftPMDependencies().map { dependencies ->
+                val declaredDependencies = dependencies.map {
+                    when (it) {
+                        is SwiftPMDependency.Local -> LocalSwiftPMDependencyForIde(it.absolutePath)
+                        is SwiftPMDependency.Remote -> {
+                            RemoteSwiftPMDependencyForIde(
+                                when (val repository = it.repository) {
+                                    is SwiftPMDependency.Remote.Repository.Id -> repository.value
+                                    is SwiftPMDependency.Remote.Repository.Url -> repository.value
+                                }
+                            )
+                        }
+                    }
+                }
+                if (declaredDependencies.isEmpty()) return@map null
+
+                val fetchTask = tasks.getByName(FetchSyntheticImportProjectPackages.TASK_NAME) as FetchSyntheticImportProjectPackages
+                DeclaredSwiftPMDependencies(
+                    dependencies = declaredDependencies,
+                    checkoutPath = fetchTask.swiftPMDependenciesCheckout.getFile(),
+                    swiftPackageResolveTaskPath = fetchTask.path,
+                )
+            }.get()
         )
     }

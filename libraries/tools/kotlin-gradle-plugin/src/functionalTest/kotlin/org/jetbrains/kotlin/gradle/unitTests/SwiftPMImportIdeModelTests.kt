@@ -7,6 +7,7 @@ package org.jetbrains.kotlin.gradle.unitTests
 
 import org.jetbrains.kotlin.gradle.dsl.multiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.swiftimport.GenerateSyntheticLinkageImportProject.Companion.SYNTHETIC_IMPORT_TARGET_MAGIC_NAME
+import org.jetbrains.kotlin.gradle.plugin.mpp.apple.swiftimport.FetchSyntheticImportProjectPackages.Companion.*
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.swiftimport.IntegrateLinkagePackageIntoXcodeProject
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.swiftimport.SwiftPMImportIdeModel
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.swiftimport.locateOrRegisterSwiftPMDependenciesExtension
@@ -24,6 +25,7 @@ class SwiftPMImportIdeModelTests {
                 hasSwiftPMDependencies = false,
                 integrateLinkagePackageTaskPath = ":${IntegrateLinkagePackageIntoXcodeProject.TASK_NAME}",
                 magicPackageName = SYNTHETIC_IMPORT_TARGET_MAGIC_NAME,
+                declaredSwiftPMDependencies = null,
             ),
             buildProjectWithMPP {
                 kotlin {
@@ -57,6 +59,13 @@ class SwiftPMImportIdeModelTests {
                 hasSwiftPMDependencies = true,
                 integrateLinkagePackageTaskPath = ":${IntegrateLinkagePackageIntoXcodeProject.TASK_NAME}",
                 magicPackageName = SYNTHETIC_IMPORT_TARGET_MAGIC_NAME,
+                declaredSwiftPMDependencies = DeclaredSwiftPMDependencies(
+                    dependencies = listOf(
+                        RemoteSwiftPMDependencyForIde("foo")
+                    ),
+                    checkoutPath = ,
+                    swiftPackageResolveTaskPath = "",
+                )
             ),
             buildProjectWithMPP {
                 kotlin {
