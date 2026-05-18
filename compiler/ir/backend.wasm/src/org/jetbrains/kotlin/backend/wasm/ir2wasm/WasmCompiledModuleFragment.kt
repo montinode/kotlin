@@ -150,15 +150,11 @@ class WasmCompiledModuleFragment(
         )
     }
 
-    private fun generateResumeBlockTypes(definedDeclarations: DefinedDeclarationsResolver) {
+    private fun generateContSuspendHandlerBlockType(definedDeclarations: DefinedDeclarationsResolver) {
         val kotlinAnyRefType = WasmRefNullType(Synthetics.HeapTypes.anyBuiltInType)
         val zeroArgContHeapType = ContHeapTypeSymbol(0)
-        val resumeBlockType = WasmFunctionType(emptyList(), listOf(kotlinAnyRefType, WasmRefNullType(zeroArgContHeapType)))
-        definedDeclarations.functionTypes[Synthetics.FunctionHeapTypes.resumeBlockType.type] = resumeBlockType
-
-        for (fragment in wasmCompiledCodeFileFragments) {
-            fragment.definedTypes.resumeBlockTypeSymbol.bind(resumeBlockType)
-        }
+        val contSuspendHandlerBlockType = WasmFunctionType(emptyList(), listOf(kotlinAnyRefType, WasmRefNullType(zeroArgContHeapType)))
+        definedDeclarations.functionTypes[Synthetics.FunctionHeapTypes.contSuspendHandlerBlockType.type] = contSuspendHandlerBlockType
     }
 
     fun linkWasmCompiledFragments(
@@ -287,7 +283,7 @@ class WasmCompiledModuleFragment(
     private fun getTags(
         definedDeclarations: DefinedDeclarationsResolver,
         exceptionTagType: ExceptionTagType,
-        wasmCoroutinesStackSwitching: Boolean,
+        useStackSwitching: Boolean,
         multimoduleOptions: MultimoduleCompileOptions?,
         exports: MutableList<WasmExport<*>>,
     ): List<WasmTag> {
@@ -313,7 +309,7 @@ class WasmCompiledModuleFragment(
             }
         }
 
-        val contTagType = wasmCoroutinesStackSwitching.takeIf { it }?.run {
+        val contTagType = useStackSwitching.takeIf { it }?.run {
             val kotlinAnyRefType = WasmRefNullType(Synthetics.HeapTypes.anyBuiltInType)
             val contTagFuncType = WasmFunctionType(listOf(kotlinAnyRefType), listOf())
             definedDeclarations.contFunctionTypes[Synthetics.FunctionHeapTypes.wasmContFunctionType.arity] = contTagFuncType
