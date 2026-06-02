@@ -6,6 +6,7 @@
 plugins {
     kotlin("jvm")
     id("require-explicit-types")
+    id("power-assert-convention")
 }
 
 dependencies {
