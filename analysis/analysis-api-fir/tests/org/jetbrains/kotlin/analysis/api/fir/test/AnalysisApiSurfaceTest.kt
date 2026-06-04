@@ -18,12 +18,22 @@ import org.jetbrains.kotlin.analysis.api.projectStructure.KaDanglingFileResoluti
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaEnumEntrySymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaNamedClassSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolOrigin
+import org.jetbrains.kotlin.analysis.api.symbols.name
 import org.jetbrains.kotlin.analysis.api.types.KaClassType
+import org.jetbrains.kotlin.analysis.api.types.symbol
+import org.jetbrains.kotlin.analysis.low.level.api.fir.LLFirInternals
+import org.jetbrains.kotlin.analysis.low.level.api.fir.LLResolutionFacadeService
+import org.jetbrains.kotlin.analysis.low.level.api.fir.api.getOrBuildFirFile
 import org.jetbrains.kotlin.analysis.low.level.api.fir.test.configurators.LLSourceLikeTestConfigurator
 import org.jetbrains.kotlin.analysis.api.types.KaType
 import org.jetbrains.kotlin.builtins.functions.FunctionTypeKind
 import org.jetbrains.kotlin.analysis.test.framework.base.AbstractAnalysisApiExecutionTest
 import org.jetbrains.kotlin.descriptors.annotations.KotlinTarget
+import org.jetbrains.kotlin.fir.renderer.FirDeclarationRendererWithFilteredAttributes
+import org.jetbrains.kotlin.fir.renderer.FirPackageDirectiveRenderer
+import org.jetbrains.kotlin.fir.renderer.FirRenderer
+import org.jetbrains.kotlin.fir.renderer.FirResolvePhaseRenderer
 import org.jetbrains.kotlin.load.kotlin.TypeMappingMode
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.psi.*
@@ -190,6 +200,42 @@ class AnalysisApiSurfaceTest : AbstractAnalysisApiExecutionTest("testData/surfac
             @Suppress("UNCHECKED_CAST")
             val contextParameterBridgeResult = contextParameterBridgeMethod.invoke(null, this@analyze, classSymbol) as Set<KotlinTarget>
             assertEquals(memberResult, contextParameterBridgeResult)
+        }
+    }
+
+    @Test
+    @OptIn(LLFirInternals::class)
+    fun javaDeclaredMemberScopeResolution(mainFile: KtFile) {
+        analyze(mainFile) {
+            val implClassSymbol = findClass(ClassId.fromString("/Impl")) ?: error("Cannot find class Impl")
+            require(implClassSymbol.origin == KaSymbolOrigin.JAVA_SOURCE)
+
+            val expectedScopeDeclarationNames = setOf(
+                "implField",
+                "implMethod",
+                "privateImplMethod",
+            )
+
+            val actualScopeDeclarationNames = implClassSymbol.declaredMemberScope
+                .declarations
+                .mapNotNullTo(HashSet()) { it.name?.asString() }
+
+            assertEquals(expectedScopeDeclarationNames, actualScopeDeclarationNames)
+
+            val baseClassSymbol = implClassSymbol.superTypes.singleOrNull()?.symbol ?: error("Cannot find super class Base")
+            val ktBaseClass = baseClassSymbol.psi as KtClass
+
+            val resolutionFacade = LLResolutionFacadeService.getInstance(useSiteModule.project).getResolutionFacade(useSiteModule)
+            val firFile = ktBaseClass.containingKtFile.getOrBuildFirFile(resolutionFacade)
+
+            val firRenderer = FirRenderer(
+                packageDirectiveRenderer = FirPackageDirectiveRenderer(),
+                resolvePhaseRenderer = FirResolvePhaseRenderer(),
+                declarationRenderer = FirDeclarationRendererWithFilteredAttributes(),
+            )
+
+            val firBaseClassDump = firRenderer.renderElementAsString(firFile, trim = true)
+            assertEqualsToTestOutputFile(firBaseClassDump)
         }
     }
 }
