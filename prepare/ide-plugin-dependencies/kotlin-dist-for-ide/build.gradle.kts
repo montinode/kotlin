@@ -5,7 +5,7 @@ plugins {
 idePluginPublishingLatch {
     publish()
 
-    val jar: Jar by tasks
+    val jar = tasks.getByName<Jar>("jar")
 
     jar.apply {
         val compilerProjectName = ":kotlin-compiler"

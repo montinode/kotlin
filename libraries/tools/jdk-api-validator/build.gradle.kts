@@ -3,7 +3,7 @@ plugins {
     id("test-inputs-check")
 }
 
-val signature by configurations.creating
+val signature = configurations.create("signature")
 
 sourceSets {
     "main" { none() }
@@ -22,7 +22,7 @@ dependencies {
 
 val signaturesDirectory = layout.buildDirectory.get().asFile.resolve("signatures")
 
-val collectSignatures by tasks.registering(Sync::class) {
+val collectSignatures = tasks.register("collectSignatures", Sync::class) {
     from(signature)
     into(signaturesDirectory)
 }

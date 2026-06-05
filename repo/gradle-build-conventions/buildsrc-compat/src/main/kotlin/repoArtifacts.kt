@@ -56,13 +56,13 @@ fun Project.testsJar(body: Jar.() -> Unit = {}): TaskProvider<Jar> {
  */
 fun Project.testsJarToBeUsedAlongWithFixtures() {
     // Define a test jar task.
-    val testsJar by tasks.registering(Jar::class) {
+    val testsJar = tasks.register("testsJar", Jar::class) {
         archiveClassifier.set("tests")
         from(sourceSets["test"].output)
     }
 
     // Create a consumable, non-resolvable configuration with a unique capability.
-    val testsJarConfig by configurations.creating {
+    val testsJarConfig = configurations.create("testsJarConfig") {
         isCanBeConsumed = true
         isCanBeResolved = false
         attributes {
@@ -333,7 +333,8 @@ fun Project.publishJarsForIde(
     libraryDependencies: List<String> = emptyList(),
     jarTaskConfiguration: Jar.() -> Unit = {},
 ) {
-    val projectsDependingOnStableStdlib: Array<String> by rootProject.extra
+    @Suppress("UNCHECKED_CAST")
+    val projectsDependingOnStableStdlib = rootProject.extra["projectsDependingOnStableStdlib"] as Array<String>
 
     for (projectName in projects) {
         check(projectName in projectsDependingOnStableStdlib) {
@@ -409,7 +410,7 @@ fun Project.publishProjectJars(
 ) {
     apply<JavaPlugin>()
 
-    val fatJarContents by configurations.creating
+    val fatJarContents = configurations.create("fatJarContents")
 
     dependencies {
         for (projectName in projects) {
@@ -423,7 +424,7 @@ fun Project.publishProjectJars(
 
     publish()
 
-    val jar: Jar by tasks
+    val jar = tasks.getByName<Jar>("jar")
 
     jar.apply {
         dependsOn(fatJarContents)
@@ -461,7 +462,7 @@ private fun Project.publishTestJar(
 ) {
     apply<JavaPlugin>()
 
-    val fatJarContents by configurations.creating
+    val fatJarContents = configurations.create("fatJarContents")
 
     dependencies {
         for (projectName in projects) {
@@ -479,7 +480,7 @@ private fun Project.publishTestJar(
 
     publish(sbom = false)
 
-    val jar: Jar by tasks
+    val jar = tasks.getByName<Jar>("jar")
 
     jar.apply {
         dependsOn(fatJarContents)

@@ -20,7 +20,7 @@ repositories {
 
 val classpathDestination = layout.buildDirectory.dir("classpath")
 
-val incomingClasspath by configurations.creating {
+val incomingClasspath = configurations.create("incomingClasspath") {
     isCanBeConsumed = false
     isCanBeResolved = true
     attributes.attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.JAVA_RUNTIME))
@@ -38,7 +38,7 @@ dependencies {
     }
 }
 
-val syncClasspath by tasks.register<Sync>("syncClasspath") {
+val syncClasspath = tasks.register<Sync>("syncClasspath") {
     if (isSnapshotTest) dependsOnKotlinGradlePluginInstall()
 
     from(incomingClasspath)
@@ -52,7 +52,7 @@ val syncClasspath by tasks.register<Sync>("syncClasspath") {
     }
 }
 
-val outgoingClasspath by configurations.creating {
+val outgoingClasspath = configurations.create("outgoingClasspath") {
     isCanBeConsumed = true
     isCanBeResolved = false
     attributes.attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.JAVA_RUNTIME))

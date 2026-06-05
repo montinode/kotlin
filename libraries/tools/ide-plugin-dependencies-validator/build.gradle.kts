@@ -37,8 +37,9 @@ application {
     mainClass.set("org.jetbrains.kotlin.ide.plugin.dependencies.validator.MainKt")
 }
 
-val projectsDependingOnStableStdlib: Array<String> by rootProject.extra
-val kotlinApiVersionForProjectsDependingOnStableStdlib: String by rootProject.extra
+@Suppress("UNCHECKED_CAST")
+val projectsDependingOnStableStdlib = rootProject.extra["projectsDependingOnStableStdlib"] as Array<String>
+val kotlinApiVersionForProjectsDependingOnStableStdlib = rootProject.extra["kotlinApiVersionForProjectsDependingOnStableStdlib"] as String
 
 tasks.withType<JavaExec> {
     notCompatibleWithConfigurationCache("Uses project in task action")

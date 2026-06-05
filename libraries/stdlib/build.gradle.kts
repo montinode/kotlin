@@ -98,7 +98,8 @@ val commonTestOptIns = listOf(
 )
 
 kotlin {
-    val renderDiagnosticNames by extra(project.kotlinBuildProperties.renderDiagnosticNames.get())
+    val renderDiagnosticNames = project.kotlinBuildProperties.renderDiagnosticNames.get()
+    extra["renderDiagnosticNames"] = renderDiagnosticNames
     val diagnosticNamesArg = if (renderDiagnosticNames) "-Xrender-internal-diagnostic-names" else null
 
     explicitApi()
@@ -127,7 +128,7 @@ kotlin {
     }
     jvm {
         compilations {
-            val compileOnlyDeclarations by creating {
+            val compileOnlyDeclarations = create("compileOnlyDeclarations") {
                 compileTaskProvider.configure {
                     compilerOptions {
                         freeCompilerArgs.set(
@@ -142,7 +143,7 @@ kotlin {
                 }
             }
 
-            val main by getting {
+            val main = getByName("main") {
                 compileTaskProvider.configure {
                     // use os.arch as an input property of the compilation task
                     // to avoid resuing compilation results from the build cache
@@ -178,7 +179,7 @@ kotlin {
                     }
                 }
             }
-            val mainJdk7 by creating {
+            val mainJdk7 = create("mainJdk7") {
                 associateWith(main)
                 compileTaskProvider.configure {
                     this as UsesKotlinJavaToolchain
@@ -203,7 +204,7 @@ kotlin {
                     }
                 }
             }
-            val mainJdk8 by creating {
+            val mainJdk8 = create("mainJdk8") {
                 associateWith(main)
                 associateWith(mainJdk7)
                 compileTaskProvider.configure {
@@ -232,7 +233,7 @@ kotlin {
                 mainJdk7.output.allOutputs,
                 mainJdk8.output.allOutputs,
             ), main.configurations.compileDependencyConfiguration)
-            val test by getting {
+            val test = getByName("test") {
                 associateWith(mainJdk7)
                 associateWith(mainJdk8)
                 compileTaskProvider.configure {
@@ -246,12 +247,12 @@ kotlin {
                     }
                 }
             }
-            val longRunningTest by creating {
+            val longRunningTest = create("longRunningTest") {
                 associateWith(main)
                 associateWith(mainJdk7)
                 associateWith(mainJdk8)
             }
-            val recursiveDeletionTest by creating {
+            val recursiveDeletionTest = create("recursiveDeletionTest") {
                 associateWith(main)
                 associateWith(mainJdk7)
                 associateWith(mainJdk8)
@@ -281,7 +282,7 @@ kotlin {
         }
 
         compilations {
-            val main by getting {
+            val main = getByName("main") {
                 compileTaskProvider.configure {
                     compilerOptions.mainCompilationOptions()
                     compilerOptions.freeCompilerArgs.addAll(
@@ -317,7 +318,7 @@ kotlin {
             )
         }
         compilations {
-            val main by getting {
+            val main = getByName("main") {
                 compileTaskProvider.configure {
                     compilerOptions.mainCompilationOptions()
                     compilerOptions.addReturnValueCheckerInfo()
@@ -369,7 +370,7 @@ kotlin {
             kotlin.setSrcDirs(emptyList<File>())
         }
         commonMain {
-            val prepareCommonSources by tasks.registering {
+            val prepareCommonSources = tasks.register("prepareCommonSources") {
                 dependsOn(":prepare:build.version:writeStdlibVersion")
             }
             kotlin {
@@ -387,10 +388,10 @@ kotlin {
                 srcDir("test")
             }
         }
-        val jvmCompileOnlyDeclarations by getting {
+        val jvmCompileOnlyDeclarations = getByName("jvmCompileOnlyDeclarations") {
             kotlin.srcDir("jvm/compileOnly")
         }
-        val jvmMain by getting {
+        val jvmMain = getByName("jvmMain") {
             project.configurations.getByName("jvmMainCompileOnly")
             dependencies {
                 api("org.jetbrains:annotations:13.0")
@@ -405,14 +406,14 @@ kotlin {
             kotlin.exclude("kotlin/internal/InternalAnnotations.kt")
         }
 
-        val jvmMainJdk7 by getting {
+        val jvmMainJdk7 = getByName("jvmMainJdk7") {
             kotlin.srcDir("jdk7/src")
         }
-        val jvmMainJdk8 by getting {
+        val jvmMainJdk8 = getByName("jvmMainJdk8") {
             kotlin.srcDir("jdk8/src")
         }
 
-        val jvmTest by getting {
+        val jvmTest = getByName("jvmTest") {
             languageSettings {
                 optIn("kotlin.io.path.ExperimentalPathApi")
             }
@@ -424,36 +425,36 @@ kotlin {
             kotlin.srcDir("jdk8/test")
         }
 
-        val jvmLongRunningTest by getting {
+        val jvmLongRunningTest = getByName("jvmLongRunningTest") {
             dependencies {
                 implementation(kotlinTest("junit"))
             }
             kotlin.srcDir("jvm/testLongRunning")
         }
 
-        val jvmRecursiveDeletionTest by getting {
+        val jvmRecursiveDeletionTest = getByName("jvmRecursiveDeletionTest") {
             dependencies {
                 implementation(kotlinTest("junit"))
             }
             kotlin.srcDir("jdk7/recursiveDeletionTest")
         }
 
-        val commonNonJvmMain by creating {
+        val commonNonJvmMain = create("commonNonJvmMain") {
             dependsOn(commonMain.get())
             kotlin.srcDir("common-non-jvm/src")
         }
 
-        val webMain by creating {
+        val webMain = create("webMain") {
             dependsOn(commonMain.get())
             kotlin {
                 srcDir("common-js-wasmjs/src")
             }
         }
 
-        val jsMain by getting {
+        val jsMain = getByName("jsMain") {
             dependsOn(webMain)
             dependsOn(commonNonJvmMain)
-            val prepareJsIrMainSources by tasks.registering(Sync::class)
+            val prepareJsIrMainSources = tasks.register("prepareJsIrMainSources", Sync::class)
             kotlin {
                 srcDir(prepareJsIrMainSources.requiredForImport())
                 srcDir("$jsDir/builtins")
@@ -484,28 +485,28 @@ kotlin {
                 }
             }
         }
-        val jsTest by getting {
+        val jsTest = getByName("jsTest") {
             kotlin.srcDir("${jsDir}/test")
         }
 
-        val nativeWasmMain by creating {
+        val nativeWasmMain = create("nativeWasmMain") {
             dependsOn(commonNonJvmMain)
             kotlin.srcDir("native-wasm/src")
         }
 
-        val nativeWasmWasiMain by creating {
+        val nativeWasmWasiMain = create("nativeWasmWasiMain") {
             dependsOn(nativeWasmMain)
             kotlin.srcDir("native-wasm/wasi")
         }
 
-        val nativeWasmTest by creating {
+        val nativeWasmTest = create("nativeWasmTest") {
             dependsOn(commonTest.get())
             kotlin.srcDir("native-wasm/test")
         }
 
-        val wasmCommonMain by creating {
+        val wasmCommonMain = create("wasmCommonMain") {
             dependsOn(nativeWasmMain)
-            val prepareWasmBuiltinSources by tasks.registering(Sync::class)
+            val prepareWasmBuiltinSources = tasks.register("prepareWasmBuiltinSources", Sync::class)
             kotlin {
                 srcDir(prepareWasmBuiltinSources.requiredForImport())
                 srcDir("wasm/builtins")
@@ -538,14 +539,14 @@ kotlin {
             }
 
         }
-        val wasmCommonTest by creating {
+        val wasmCommonTest = create("wasmCommonTest") {
             dependsOn(nativeWasmTest)
             kotlin {
                 srcDir("wasm/test")
             }
         }
 
-        val wasmJsMain by getting {
+        val wasmJsMain = getByName("wasmJsMain") {
             dependsOn(webMain)
             dependsOn(wasmCommonMain)
             kotlin {
@@ -554,13 +555,13 @@ kotlin {
                 srcDir("wasm/js/src")
             }
         }
-        val wasmJsTest by getting {
+        val wasmJsTest = getByName("wasmJsTest") {
             dependsOn(wasmCommonTest)
             kotlin {
                 srcDir("wasm/js/test")
             }
         }
-        val wasmWasiMain by getting {
+        val wasmWasiMain = getByName("wasmWasiMain") {
             dependsOn(wasmCommonMain)
             dependsOn(nativeWasmWasiMain)
             kotlin {
@@ -572,7 +573,7 @@ kotlin {
                 optIn("kotlin.wasm.unsafe.UnsafeWasmMemoryApi")
             }
         }
-        val wasmWasiTest by getting {
+        val wasmWasiTest = getByName("wasmWasiTest") {
             dependsOn(wasmCommonTest)
             kotlin {
                 srcDir("wasm/wasi/test")
@@ -580,9 +581,9 @@ kotlin {
         }
 
         if (kotlinBuildProperties.isInIdeaSync.get()) {
-            val nativeKotlinTestCommon by creating {
+            val nativeKotlinTestCommon = create("nativeKotlinTestCommon") {
                 dependsOn(commonMain.get())
-                val prepareKotlinTestCommonNativeSources by tasks.registering(Sync::class) {
+                val prepareKotlinTestCommonNativeSources = tasks.register("prepareKotlinTestCommonNativeSources", Sync::class) {
                     from("../kotlin.test/common/src/main/kotlin")
                     from("../kotlin.test/annotations-common/src/main/kotlin")
                     into(layout.buildDirectory.dir("src/native-kotlin-test-common-sources"))
@@ -592,7 +593,7 @@ kotlin {
                     srcDir(prepareKotlinTestCommonNativeSources.requiredForImport())
                 }
             }
-            val nativeMain by getting {
+            val nativeMain = getByName("nativeMain") {
                 dependsOn(nativeWasmMain)
                 dependsOn(nativeWasmWasiMain)
                 dependsOn(nativeKotlinTestCommon)
@@ -605,7 +606,7 @@ kotlin {
                     optIn("kotlin.native.internal.InternalForKotlinNative")
                 }
             }
-            val nativeTest by getting {
+            val nativeTest = getByName("nativeTest") {
                 dependsOn(nativeWasmTest)
                 kotlin {
                     srcDir("$rootDir/kotlin-native/runtime/test")
@@ -638,8 +639,8 @@ kotlin {
 }
 
 dependencies {
-    val jvmMainApi by configurations.getting
-    val metadataCompilationApi by configurations.getting
+    val jvmMainApi = configurations.getByName("jvmMainApi")
+    val metadataCompilationApi = configurations.getByName("metadataCompilationApi")
 
     // native target is declared only when "ideaSync" is on,
     // FIXME: KT-85818 Avoid using isInIdeaSync in stdlib/build.gradle.kts in kotlin.git
@@ -811,8 +812,8 @@ tasks {
         val distJsKlib = configurations.create("distJsKlib")
         val distWasmJsKlib = configurations.create("distWasmJsKlib")
         val distWasmWasiKlib = configurations.create("distWasmWasiKlib")
-        val commonMainMetadataElements by configurations.creating
-        val webMainMetadataElements by configurations.creating
+        val commonMainMetadataElements = configurations.create("commonMainMetadataElements")
+        val webMainMetadataElements = configurations.create("webMainMetadataElements")
 
         add(distJsSourcesJar.name, jsSourcesJar)
         add(distJsKlib.name, jsJar)
@@ -939,7 +940,7 @@ tasks {
 configureDefaultPublishing()
 
 
-val emptyJavadocJar by tasks.creating(org.gradle.api.tasks.bundling.Jar::class) {
+val emptyJavadocJar = tasks.create("emptyJavadocJar", org.gradle.api.tasks.bundling.Jar::class) {
     archiveClassifier.set("javadoc")
 }
 

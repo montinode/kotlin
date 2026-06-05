@@ -116,7 +116,7 @@ native {
     }
 }
 
-val cppApiElements by configurations.creating {
+val cppApiElements = configurations.create("cppApiElements") {
     isCanBeConsumed = true
     isCanBeResolved = false
     attributes {
@@ -125,7 +125,7 @@ val cppApiElements by configurations.creating {
     }
 }
 
-val cppLinkElements by configurations.creating {
+val cppLinkElements = configurations.create("cppLinkElements") {
     isCanBeConsumed = true
     isCanBeResolved = false
     attributes {
@@ -140,7 +140,7 @@ artifacts {
     add(cppLinkElements.name, tasks.named<ToolExecutionTask>(library).map { it.output })
 }
 
-val printLlvmDir by tasks.registering {
+val printLlvmDir = tasks.register("printLlvmDir") {
     dependsOn(nativeDependencies.llvmDependency)
     doLast {
         println(nativeDependencies.llvmPath)

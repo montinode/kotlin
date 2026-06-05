@@ -9,7 +9,7 @@ plugins {
     id("java-test-fixtures")
 }
 
-val composeCompilerPlugin by configurations.creating
+val composeCompilerPlugin = configurations.create("composeCompilerPlugin")
 
 dependencies {
     testFixturesImplementation(intellijCore())

@@ -29,7 +29,7 @@ node {
     distBaseUrl.set(null as String?)
 }
 
-val testJsRuntime by configurations.creating {
+val testJsRuntime = configurations.create("testJsRuntime") {
     attributes {
         attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.LIBRARY))
         attribute(Usage.USAGE_ATTRIBUTE, objects.named(KotlinUsages.KOTLIN_RUNTIME))
@@ -212,7 +212,7 @@ val prepareNpmTestData by task<Copy> {
     into(node.nodeProjectDir)
 }
 
-val npmInstall by tasks.getting(NpmTask::class) {
+val npmInstall = tasks.named("npmInstall", NpmTask::class) {
     val packageLockFile = testDataDir.resolve("package-lock.json")
 
     inputs.file(node.nodeProjectDir.file("package.json"))

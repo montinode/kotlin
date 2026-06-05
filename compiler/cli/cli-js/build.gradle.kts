@@ -28,7 +28,7 @@ dependencies {
     compileOnly(intellijCore())
 }
 
-val updateWasmResources by tasks.registering(Sync::class) {
+val updateWasmResources = tasks.register("updateWasmResources", Sync::class) {
     from(configurations.wasmCustomFormattersResolver)
     into(temporaryDir)
 }

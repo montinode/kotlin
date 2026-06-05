@@ -2,8 +2,10 @@ plugins {
     kotlin("jvm")
 }
 
-val commonCompilerModules: Array<String> by rootProject.extra
-val descriptorsCompilerModules: Array<String> by rootProject.extra
+@Suppress("UNCHECKED_CAST")
+val commonCompilerModules: Array<String> = rootProject.extra["commonCompilerModules"] as Array<String>
+@Suppress("UNCHECKED_CAST")
+val descriptorsCompilerModules: Array<String> = rootProject.extra["descriptorsCompilerModules"] as Array<String>
 
 /**
  * The list of modules that aren't a part of [commonCompilerModules] and doesn't have a dedicated artifact,

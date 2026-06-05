@@ -5,14 +5,14 @@
 
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.extra
-import org.gradle.kotlin.dsl.provideDelegate
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
 internal fun Project.limitLanguageAndApiVersions(version: KotlinVersion) {
-    val projectsDependingOnStableStdlib: Array<String> by rootProject.extra
-    val kotlinApiVersionForProjectsDependingOnStableStdlib: String by rootProject.extra
+    @Suppress("UNCHECKED_CAST")
+    val projectsDependingOnStableStdlib = rootProject.extra["projectsDependingOnStableStdlib"] as Array<String>
+    val kotlinApiVersionForProjectsDependingOnStableStdlib = rootProject.extra["kotlinApiVersionForProjectsDependingOnStableStdlib"] as String
 
     tasks.withType<KotlinJvmCompile>().configureEach {
         compilerOptions {
