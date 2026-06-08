@@ -101,7 +101,7 @@ internal fun precompileWasmModules(setup: PrecompileSetup) {
             wasmIncludedModuleOnly = true
             wasmUseNewExceptionProposal = setup.newExceptionProposal
             wasmForceDebugFriendlyCompilation = setup.debugFriendly
-            wasmCoroutinesStackSwitching = setup.wasmCoroutinesStackSwitching
+            wasmUseStackSwitching = setup.wasmCoroutinesStackSwitching
             this.libraries = libraries
             this.includes = includes
         }

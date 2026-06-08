@@ -147,7 +147,7 @@ open class AbstractFirWasmJsCodegenCoroutinesStackSwitchingSingleModuleTest(
     override fun configure(builder: TestConfigurationBuilder) {
         super.configure(builder)
         builder.defaultDirectives {
-            +WasmEnvironmentConfigurationDirectives.WASM_COROUTINES_STACK_SWITCHING
+            +WasmEnvironmentConfigurationDirectives.USE_STACK_SWITCHING_PROPOSAL
         }
     }
 }

@@ -141,7 +141,7 @@ fun main(args: Array<String>) {
             }
 
             testClass<AbstractFirWasmJsCodegenCoroutinesStackSwitchingSingleModuleTest> {
-                model("codegen/box/coroutines", pattern = jsTranslatorTestPattern, excludedPattern = excludePatternForSingleModuleTest)
+                model("codegen/box/coroutines", pattern = jsTranslatorTestPattern)
             }
 
             testClass<AbstractFirWasmJsCodegenCoroutinesStackSwitchingMultiModuleTest> {
