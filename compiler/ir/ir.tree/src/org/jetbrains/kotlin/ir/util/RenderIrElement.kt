@@ -25,8 +25,10 @@ import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.name.SpecialNames
 import org.jetbrains.kotlin.name.SpecialNames.IMPLICIT_SET_PARAMETER
+import org.jetbrains.kotlin.name.StandardClassIds
 import org.jetbrains.kotlin.renderer.DescriptorRenderer
 import org.jetbrains.kotlin.types.Variance
+import org.jetbrains.kotlin.descriptors.annotations.KotlinRetention
 import org.jetbrains.kotlin.util.capitalizeDecapitalize.toLowerCaseAsciiOnly
 import org.jetbrains.kotlin.utils.addToStdlib.ifTrue
 import org.jetbrains.kotlin.utils.addToStdlib.runIf
@@ -716,6 +718,9 @@ internal fun IrDeclaration.renderOriginIfNonTrivial(options: DumpIrTreeOptions):
     if (!options.renderOriginForExternalDeclarations) {
         originsToSkipFromRendering.add(IrDeclarationOrigin.IR_EXTERNAL_DECLARATION_STUB)
     }
+    if (!options.renderOriginForExternalJavaDeclarations) {
+        originsToSkipFromRendering.add(IrDeclarationOrigin.IR_EXTERNAL_JAVA_DECLARATION_STUB)
+    }
     return if (origin in originsToSkipFromRendering) "" else "$origin "
 }
 
@@ -990,14 +995,19 @@ private fun IrTypeArgument.renderTypeArgument(renderer: RenderIrElementVisitor?,
 @OptIn(DeprecatedCompilerApi::class)
 internal fun List<IrAnnotation>.filterOutSourceRetentions(options: DumpIrTreeOptions): List<IrAnnotation> =
     applyIf(!options.printAnnotationsWithSourceRetention) {
-        filterNot { it: IrAnnotation ->
-            it.symbol.isBound &&
-                    (it.symbol.owner.returnType.classifierOrNull?.owner as? IrClass)?.annotations?.any { it: IrAnnotation ->
-                        it.symbol.owner.returnType.classFqName?.asString() == Retention::class.java.name &&
-                                (it.argumentMapping[Name.identifier(Retention::value.name)] as? IrGetEnumValue)?.symbol?.owner?.name?.asString() == AnnotationRetention.SOURCE.name
-                    } == true
+        filterNot { it: IrConstructorCall ->
+            if (!it.symbol.isBound) return@filterNot false
+            val annotationClass = it.symbol.owner.returnType.classifierOrNull?.owner as? IrClass ?: return@filterNot false
+            val fqName = annotationClass.fqNameWhenAvailable
+            if (fqName?.isCompilerInternalSyntheticAnnotation == true) {
+                return@filterNot true
+            }
+            annotationClass.getAnnotationRetention() == KotlinRetention.SOURCE
         }
     }
+
+private val FqName.isCompilerInternalSyntheticAnnotation: Boolean
+    get() = this == StandardClassIds.Annotations.EnhancedNullability.asSingleFqName() || parent() == StandardClassIds.BASE_INTERNAL_IR_PACKAGE
 
 private fun renderTypeAnnotations(annotations: List<IrAnnotation>, renderer: RenderIrElementVisitor?, options: DumpIrTreeOptions): String =
     annotations.filterOutSourceRetentions(options).let {

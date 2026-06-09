@@ -94,6 +94,7 @@ data class DumpIrTreeOptions(
     val printFakeOverrideSymbolsInPropertiesOfAnonymousClasses: Boolean = true,
     val printMemberAccessExpressionArgumentNames: Boolean = true,
     val printSealedSubclasses: Boolean = true,
+    val renderOriginForExternalJavaDeclarations: Boolean = true,
     val replaceImplicitSetterParameterNameWith: Name? = null,
     val isHiddenDeclaration: (IrDeclaration) -> Boolean = { false },
     val filePathRenderer: (IrFileEntry, String) -> String = { _, name -> name },
