@@ -28,6 +28,7 @@ import org.jetbrains.kotlin.internal.compilerRunner.native.KotlinNativeLibraryGe
 import org.jetbrains.kotlin.gradle.utils.registerClassLoaderScopedBuildService
 import org.jetbrains.kotlin.internal.compilerRunner.native.KotlinNativeToolRunner
 import org.jetbrains.kotlin.konan.library.KONAN_PLATFORM_LIBS_NAME_PREFIX
+import org.jetbrains.kotlin.konan.library.KONAN_STDLIB_NAME
 import org.jetbrains.kotlin.konan.target.HostManager
 import org.jetbrains.kotlin.konan.target.KonanTarget
 import org.jetbrains.kotlin.konan.target.customerDistribution
@@ -105,7 +106,8 @@ internal class PlatformLibrariesGenerator(
     }
 
     /**
-     * Check that caches for all platform libs for [konanTarget] actually exist in the cache directory.
+     * Check that caches for all platform libs for [konanTarget] exist in the cache
+     * directory, and that the stdlib cache has its `.cache-complete` marker (KT-86251).
      */
     private fun checkCaches(): Boolean {
         if (!shouldBuildCaches) {
@@ -115,9 +117,14 @@ internal class PlatformLibrariesGenerator(
         val cacheDirectory = getRootCacheDirectory(
             konanHome, konanTarget, true, konanCacheKind.get()
         )
-        return presentDefs.toPlatformLibNames().all {
+        val platformLibsReady = presentDefs.toPlatformLibNames().all {
             cacheDirectory.resolve(getCacheFileName(it, konanCacheKind.get())).listFilesOrEmpty().isNotEmpty()
         }
+        if (!platformLibsReady) return false
+
+        // Verify stdlib-cache is complete (KT-86251: incomplete dir from interrupted run).
+        val stdlibCacheDir = cacheDirectory.resolve(getCacheFileName(KONAN_STDLIB_NAME, konanCacheKind.get()))
+        return stdlibCacheDir.resolve(CACHE_COMPLETE_MARKER).exists()
     }
 
     private fun getRootCacheDirectory(konanHome: File, target: KonanTarget, debuggable: Boolean, cacheKind: NativeCacheKind): File {
@@ -293,5 +300,12 @@ internal class PlatformLibrariesGenerator(
         }
 
         private val commonizerLockForDirectory = ConcurrentHashMap<File, NativeDistributionCommonizerLock>()
+
+        /**
+         * Written into the monolithic stdlib cache directory once the cache is complete (KT-86251).
+         * Must stay in sync with `CachedLibraries.MONOLITHIC_CACHE_COMPLETE_MARKER` in the compiler backend;
+         * the value is duplicated because the two modules share no common dependency.
+         */
+        internal const val CACHE_COMPLETE_MARKER = ".cache-complete"
     }
 }

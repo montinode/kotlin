@@ -275,6 +275,13 @@ class CachedLibraries(
         fun getCachedLibraryName(library: KotlinLibrary): String = getCachedLibraryName(library.uniqueName)
         fun getCachedLibraryName(libraryName: String): String = "$libraryName-cache"
 
+        /**
+         * Written into a monolithic cache directory once the cache is complete (KT-86251).
+         * Must stay in sync with `PlatformLibrariesGenerator.CACHE_COMPLETE_MARKER` in KGP;
+         * the value is duplicated because the two modules share no common dependency.
+         */
+        const val MONOLITHIC_CACHE_COMPLETE_MARKER = ".cache-complete"
+
         private fun computeLibraryHash(library: KotlinLibrary, librariesHashes: MutableMap<String, FingerprintHash>) =
                 librariesHashes.getOrPut(library.uniqueName) {
                     val hashComputer = LibraryHashComputer()
