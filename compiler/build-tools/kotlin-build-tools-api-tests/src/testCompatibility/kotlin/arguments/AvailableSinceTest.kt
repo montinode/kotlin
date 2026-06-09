@@ -188,6 +188,7 @@ class AvailableSinceTest : BaseCompilationTest() {
     }
 
     @Test
+    @Suppress("DEPRECATION_ERROR")
     fun testJvmSnapshotBasedIncrementalCompilationConfiguration() {
         val toolchains = KotlinToolchains.loadImplementation(btaClassloader)
         assumeTrue(toolchains.hasOptionVersionChecking())
