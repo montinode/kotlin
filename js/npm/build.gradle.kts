@@ -31,6 +31,24 @@ fun Project.createCopyTemplateTask(templateName: String): Copy {
   }
 }
 
+fun Project.createValidateTokenTask(templateName: String): NpmTask {
+  return task<NpmTask>("validate-npm-token-for-$templateName") {
+    val deployDir = File("$deployDir/$templateName")
+    workingDir.set(deployDir)
+
+    // During dry run, make an authenticated npm request (`whoami`) using the auth token
+    // to validate that the token works against the registry.
+    // `npm whoami` returns the user associated with the token and fails if the token is invalid.
+    args.set(
+      listOf(
+        "whoami",
+        "--registry=https://registry.npmjs.org/",
+        "--//registry.npmjs.org/:_authToken=$authToken"
+      )
+    )
+  }
+}
+
 fun Project.createPublishToNpmTask(templateName: String): NpmTask {
   return task<NpmTask>("publish-$templateName-to-npm") {
     val deployDir = File("$deployDir/$templateName")
@@ -39,7 +57,11 @@ fun Project.createPublishToNpmTask(templateName: String): NpmTask {
     val deployArgs = listOf("publish", "--//registry.npmjs.org/:_authToken=$authToken", "--tag=$deployTag")
     if (dryRun == "true") {
       println("$deployDir \$ npm arguments: $deployArgs");
+      // During dry run, instead of actually publishing, produce the package tarball (`pack`).
+      // Token validation is performed separately by the `validate-npm-token-for-*` task,
+      // which this task depends on (see usage below).
       args.set(listOf("pack"))
+      dependsOn(createValidateTokenTask(templateName))
     }
     else {
       args.set(deployArgs)
