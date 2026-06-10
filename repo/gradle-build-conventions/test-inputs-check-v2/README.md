@@ -41,24 +41,28 @@ automatically rendered)
 flowchart TD
     FileExists["File.exists()"]
     FileRead["FileInputStream.read(), ..."]
-    InsideRootProjectDir["Is inside root project dir?"]
-    InsideCurrentProjectBuildDir["Is outside current project's build dir?"]
-    IsNotDeclared["Is not declared in Gradle?"]
+    RootDir["Exclude if outside root dir"]
+    BuildDir["Exclude if inside current project's build dir"]
+    KlibCache["Exclude if dynamically created klib cache"]
+    DeclaredInGradle["Is declared in Gradle?"]
     Ignore
     UndeclaredInput["Undeclared input found!"]
     
-    FileRead --> InsideRootProjectDir
+    FileRead --> RootDir
     FileExists -->|false| Ignore
-    FileExists -->|true| InsideRootProjectDir
+    FileExists -->|true| RootDir
     
-    InsideRootProjectDir -->|no| Ignore
-    InsideRootProjectDir -->|yes| InsideCurrentProjectBuildDir
+    RootDir -->|excluded| Ignore
+    RootDir --> BuildDir
     
-    InsideCurrentProjectBuildDir -->|no| Ignore
-    InsideCurrentProjectBuildDir -->|yes| IsNotDeclared
+    BuildDir -->|excluded| Ignore
+    BuildDir --> KlibCache
     
-    IsNotDeclared -->|no| Ignore
-    IsNotDeclared -->|yes| UndeclaredInput
+    KlibCache -->|excluded| Ignore
+    KlibCache --> DeclaredInGradle
+    
+    DeclaredInGradle -->|yes| Ignore
+    DeclaredInGradle -->|no| UndeclaredInput
 ```
 
 ### Ignoring files outside the root project directory
@@ -90,6 +94,15 @@ Most of the files in the project's build directory are already tracked as inputs
 to that directory and then reads them back.
 
 To support such cases, we simply allow all reads from the build directory.
+
+### Ignoring files from dynamically created klib cache
+
+The files in `kotlin-native/dist/klib/cache` are written dynamically during test execution and then read back. We don't consider them 
+inputs, thus they are ignored in `UndeclaredInputsGuard`.
+
+There is only one exception: the stdlib cache. It is produced by `:kotlin-native:distStdlibCache` and written into 
+`.../klib/cache/{target}-gSTATIC-system/stdlib-per-file-cache`. Files inside this directory are not ignored 
+because they are not dynamically created.
 
 ### Ignoring non-existent files
 
