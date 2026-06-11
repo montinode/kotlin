@@ -23,17 +23,11 @@ import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
 import org.jetbrains.kotlin.gradle.testbase.*
 import org.jetbrains.kotlin.gradle.testbase.BuildOptions.ConfigurationCacheValue
 import org.jetbrains.kotlin.gradle.uklibs.applyMultiplatform
-import org.junit.jupiter.api.condition.OS
 import javax.inject.Inject
 import kotlin.io.path.writeText
 import kotlin.test.Ignore
 import kotlin.test.assertEquals
 
-// remove after KTI-3326 Allow kotlin teamcity agents to run playwright browsers
-@OsCondition(
-    supportedOn = [OS.MAC],
-    enabledOnCI = [OS.MAC]
-)
 @OptIn(ExperimentalJsTestDsl::class)
 @JsGradlePluginTests
 class JsBrowserTestsWithPlaywrightIT : KGPBaseTest() {
