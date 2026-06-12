@@ -1,0 +1,10 @@
+$TESTDATA_DIR$/klibMetadataVersionSource.kt
+-Xwasm
+-Xir-produce-klib-dir
+-ir-output-dir
+$TEMP_DIR$
+-ir-output-name
+out
+-libraries
+$STDLIB_WASM_JS$
+-Xmetadata-version=2.3.0
