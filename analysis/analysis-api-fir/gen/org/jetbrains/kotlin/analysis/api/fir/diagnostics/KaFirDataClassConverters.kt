@@ -3893,6 +3893,13 @@ private fun KaDiagnosticConverterBuilder.addConversions87() {
 }
 
 private fun KaDiagnosticConverterBuilder.addConversions88() {
+    add(FirErrors.ESCAPING_CAPTURED_VARIABLE) { firDiagnostic ->
+        EscapingCapturedVariableImpl(
+            firSymbolBuilder.variableBuilder.buildVariableSymbol(firDiagnostic.a),
+            firDiagnostic as KtPsiDiagnostic,
+            token,
+        )
+    }
     add(FirErrors.PARENTHESIZED_PACKAGE_QUALIFIER.errorFactory) { firDiagnostic ->
         ParenthesizedPackageQualifierErrorImpl(
             firDiagnostic as KtPsiDiagnostic,
@@ -4546,13 +4553,6 @@ private fun KaDiagnosticConverterBuilder.addConversions101() {
 }
 
 private fun KaDiagnosticConverterBuilder.addConversions102() {
-    add(FirErrors.CV_DIAGNOSTIC) { firDiagnostic ->
-        CvDiagnosticImpl(
-            firSymbolBuilder.variableBuilder.buildVariableSymbol(firDiagnostic.a),
-            firDiagnostic as KtPsiDiagnostic,
-            token,
-        )
-    }
     add(FirErrors.UNRESOLVED_REFERENCE) { firDiagnostic ->
         UnresolvedReferenceImpl(
             firDiagnostic.a,

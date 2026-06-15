@@ -9,7 +9,7 @@ import javax.swing.SwingUtilities
 fun viaThread() {
     var unstable = ""
     Thread {
-        println(<!CV_DIAGNOSTIC!>unstable<!>)
+        println(<!ESCAPING_CAPTURED_VARIABLE!>unstable<!>)
     }
     unstable = "hello"
 }
@@ -17,7 +17,7 @@ fun viaThread() {
 fun viaExecutor(executor: Executor) {
     var unstable = ""
     executor.execute {
-        println(<!CV_DIAGNOSTIC!>unstable<!>)
+        println(<!ESCAPING_CAPTURED_VARIABLE!>unstable<!>)
     }
     unstable = "hello"
 }
@@ -25,7 +25,7 @@ fun viaExecutor(executor: Executor) {
 fun viaExecutorService(executor: ExecutorService) {
     var unstable = ""
     executor.submit {
-        println(<!CV_DIAGNOSTIC!>unstable<!>)
+        println(<!ESCAPING_CAPTURED_VARIABLE!>unstable<!>)
     }
     unstable = "hello"
 }
@@ -33,7 +33,7 @@ fun viaExecutorService(executor: ExecutorService) {
 fun viaSwingUtilities() {
     var unstable = ""
     SwingUtilities.invokeLater {
-        println(<!CV_DIAGNOSTIC!>unstable<!>)
+        println(<!ESCAPING_CAPTURED_VARIABLE!>unstable<!>)
     }
     unstable = "hello"
 }
@@ -41,7 +41,7 @@ fun viaSwingUtilities() {
 fun viaEventQueue() {
     var unstable = ""
     EventQueue.invokeLater {
-        println(<!CV_DIAGNOSTIC!>unstable<!>)
+        println(<!ESCAPING_CAPTURED_VARIABLE!>unstable<!>)
     }
     unstable = "hello"
 }

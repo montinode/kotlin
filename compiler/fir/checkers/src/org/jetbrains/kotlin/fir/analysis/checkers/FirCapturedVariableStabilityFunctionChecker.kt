@@ -147,7 +147,7 @@ private class CapturedVariableVisitor(
         if (hasCapturedWrites) {
             reporter.reportOn(
                 expression.source,
-                FirErrors.CV_DIAGNOSTIC,
+                FirErrors.ESCAPING_CAPTURED_VARIABLE,
                 symbol,
                 context
             )

@@ -13,7 +13,7 @@ class MyExecutor {
 fun viaCustomExecutor(executor: MyExecutor) {
     var unstable = ""
     executor.run {
-        println(<!CV_DIAGNOSTIC!>unstable<!>)
+        println(<!ESCAPING_CAPTURED_VARIABLE!>unstable<!>)
     }
     unstable = "hello"
 }

@@ -7,7 +7,7 @@ fun testCaptureInsideLocalFunction() {
 
     fun localHelper() {
         Thread {
-            println(<!CV_DIAGNOSTIC!>r<!>)
+            println(<!ESCAPING_CAPTURED_VARIABLE!>r<!>)
         }
     }
 
@@ -21,8 +21,8 @@ fun testNestedAnonymousFunction() {
     fun localHelper() {
         var l = 3
         Thread {
-            println(<!CV_DIAGNOSTIC!>l<!>)
-            println(<!CV_DIAGNOSTIC!>outer<!>)
+            println(<!ESCAPING_CAPTURED_VARIABLE!>l<!>)
+            println(<!ESCAPING_CAPTURED_VARIABLE!>outer<!>)
         }
         l = 2
     }
@@ -51,9 +51,9 @@ fun testEscapingLambdaInsideLocalConstructor() {
         constructor(i: Int) {
             var result = i + l
             Thread {
-                println(<!CV_DIAGNOSTIC!>l<!>)
-                println(<!CV_DIAGNOSTIC!>result<!>)
-                println(<!CV_DIAGNOSTIC!>r<!>)
+                println(<!ESCAPING_CAPTURED_VARIABLE!>l<!>)
+                println(<!ESCAPING_CAPTURED_VARIABLE!>result<!>)
+                println(<!ESCAPING_CAPTURED_VARIABLE!>r<!>)
             }
             result = 3
             l = 3
@@ -70,8 +70,8 @@ fun testEscapingLambdaInsideLocalConstructor() {
 fun testNestedInPlaceLambdaInsideEscaping() {
     var l = 2
     Thread {
-        <!CV_DIAGNOSTIC!>l<!>.let {
-            println(<!CV_DIAGNOSTIC!>l<!>)
+        <!ESCAPING_CAPTURED_VARIABLE!>l<!>.let {
+            println(<!ESCAPING_CAPTURED_VARIABLE!>l<!>)
         }
     }
     l = 4
@@ -81,7 +81,7 @@ private fun testNestedEscapingLambdas() = Thread {
     var another = "hello"
 
     Thread {
-        println(<!CV_DIAGNOSTIC!>another<!>)
+        println(<!ESCAPING_CAPTURED_VARIABLE!>another<!>)
     }
 
     another = "hi"
