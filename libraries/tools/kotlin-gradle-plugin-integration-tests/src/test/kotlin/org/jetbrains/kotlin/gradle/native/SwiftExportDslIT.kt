@@ -402,7 +402,6 @@ class SwiftExportDslIT : KGPBaseTest() {
                 with(project) {
                     applyMultiplatform {
                         iosArm64()
-                        with(swiftExport) { }
 
                         sourceSets.commonMain {
                             compileSource(

@@ -796,4 +796,36 @@ class SwiftExportIT : KGPBaseTest() {
             }
         }
     }
+
+    @OptIn(ExperimentalSwiftExportDsl::class)
+    @DisplayName("Swift Export coroutines-core dependency")
+    @GradleTest
+    fun testSwiftExportCoroutinesCore(
+        gradleVersion: GradleVersion,
+        @TempDir testBuildDir: Path,
+    ) {
+        project("empty", gradleVersion) {
+            plugins {
+                kotlin("multiplatform")
+            }
+            settingsBuildScriptInjection {
+                settings.rootProject.name = "shared"
+            }
+            buildScriptInjection {
+                project.applyMultiplatform {
+                    iosArm64()
+                    with(swiftExport) {
+                        export("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+                    }
+                }
+            }
+
+            build(
+                ":iosArm64DebugSwiftExport",
+                environmentVariables = swiftExportEmbedAndSignEnvVariables(testBuildDir),
+            ) {
+                assertTasksExecuted(":iosArm64DebugSwiftExport")
+            }
+        }
+    }
 }
