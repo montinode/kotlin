@@ -250,17 +250,24 @@ object FirJsErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
         map.put(
             DATA_CLASS_COPY_JS_EXPORTABILITY_WILL_BE_CHANGED,
             """
-                Non-public primary constructor is exposed via the generated 'copy()' method of the 'data' class.
+                Non-public primary constructor is exposed via the generated 'copy()' method of this 'data' class.
 
-                The generated 'copy()' will inherit the @JsExport.Ignore in future releases by default.
+                In a future release, the generated 'copy()' will inherit '@JsExport.Ignore' by default,
+                matching the exportability of the primary constructor.
 
-                To suppress the warning now, do one of the following:
-                - Annotate the data class with the '@ConsistentCopyVisibility' annotation, then `copy` will inherit the @JsExport.Ignore, so it will be not exported to JavaScript/TypeScript.
-                - Use the '-Xconsistent-data-class-copy-visibility' compiler flag, which act like you annotated all the exported data-classes with '@ConsistentCopyVisibility' annotation, so the copy function will not be exported to JavaScript/TypeScript.
-                - Annotate the data class with the '@ExposedCopyVisibility' annotation, then `copy` will not inherit the @JsExport.Ignore, so it will be exported to JavaScript/TypeScript.
+                To resolve this warning, choose one of the following options:
 
-                To learn more, see the documentation of the '@ConsistentCopyVisibility' and '@ExposedCopyVisibility' annotations.
-                
+                  - Annotate the data class with '@ConsistentCopyVisibility':
+                    'copy()' will inherit '@JsExport.Ignore' and will NOT be exported to JavaScript/TypeScript.
+
+                  - Annotate the data class with '@ExposedCopyVisibility':
+                    'copy()' will NOT inherit '@JsExport.Ignore' and WILL be exported to JavaScript/TypeScript.
+
+                  - Pass the '-Xconsistent-data-class-copy-visibility' compiler flag:
+                    Applies '@ConsistentCopyVisibility' behavior to all data classes globally,
+                    so 'copy()' will inherit '@JsExport.Ignore' and will NOT be exported to JavaScript/TypeScript.
+
+                For more information, see the documentation for '@ConsistentCopyVisibility' and '@ExposedCopyVisibility'.                
                 
             """.trimIndent() // Two empty lines at the end to append "This will become an error in" message
         )
@@ -268,14 +275,16 @@ object FirJsErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
         map.put(
             NON_EXPORTABLE_TYPE_IN_SYNTHETIC_COPY_FUNCTION,
             """
-                The parameter uses non-exportable type ''{0}'' from the exposed 'copy()' method of the 'data' class.
-                
-                To suppress the warning:
-                - Ensure that the exported data class doesn't have '@ExposedCopyVisibility' annotation
-                - If the primary constructor is public, annotate it with the '@JsExport.Ignore' annotation, so it will not be exported to JavaScript/TypeScript.
-                
-                
-            """.trimIndent(), // Two empty lines at the end to append "This will become an error in" message
+                Parameter of type ''{0}'' is not exportable, but is used in the exposed ''copy()'' method of this ''data'' class.
+
+                To suppress this warning, choose one of the following options:
+
+                  - If present, remove the ''@ExposedCopyVisibility'' annotation from the data class:
+                    ''copy()'' will NOT be exported to JavaScript/TypeScript.
+
+                  - Annotate the primary constructor and the property with ''@JsExport.Ignore'' (if it is public):
+                    ''copy()'' will NOT be exported to JavaScript/TypeScript.
+                """.trimIndent(),
             FirDiagnosticRenderers.RENDER_TYPE,
         )
     }

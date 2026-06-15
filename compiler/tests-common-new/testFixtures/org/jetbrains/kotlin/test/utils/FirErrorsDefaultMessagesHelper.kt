@@ -10,6 +10,7 @@ import org.jetbrains.kotlin.backend.jvm.JvmBackendErrors
 import org.jetbrains.kotlin.diagnostics.*
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors
 import org.jetbrains.kotlin.fir.analysis.diagnostics.js.FirJsErrors
+import org.jetbrains.kotlin.fir.analysis.diagnostics.js.FirJsErrors.DATA_CLASS_COPY_JS_EXPORTABILITY_WILL_BE_CHANGED
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors
 import org.jetbrains.kotlin.ir.backend.js.checkers.JsKlibErrors
 import org.jetbrains.kotlin.ir.inline.diagnostics.IrInlinerErrors
@@ -56,6 +57,7 @@ private val lastCharRegex = """[.}\d]""".toRegex()
 
 private val lastCharExclusions = listOf(
     FirErrors.DATA_CLASS_COPY_VISIBILITY_WILL_BE_CHANGED.name,
+    DATA_CLASS_COPY_JS_EXPORTABILITY_WILL_BE_CHANGED.name,
     FirErrors.ERROR_SUPPRESSION.name,
     FirErrors.NOT_A_MULTIPLATFORM_COMPILATION.name,
     FirErrors.CONTEXT_CLASS_OR_CONSTRUCTOR.name,
