@@ -215,8 +215,8 @@ test regresses:
   KT-74097 cycle (`LazyThreadSafetyMode.PUBLICATION` lazies recurse silently on
   same-thread re-entrance). Do **not** add another `ThreadLocal` /
   `FirSession.symbolProvider` consumer in `compiler/java-direct/.../resolution/` —
-  funnel every probe through the two extensions `FirSession.cycleSafeClassLikeSymbol` /
-  `FirSession.cycleSafeTryResolveClass`.
+  funnel every probe through `FirSession.cycleSafeClassLikeSymbol` (the builtins-filtered
+  class-existence probe `tryResolve` in `JavaTypeResolver.kt` is layered directly on top of it).
 - **`JavaSupertypeLoopChecker.guarded(classId)`** bounds supertype walks against
   cycles. When a helper both *enters* the guard and *calls another helper that
   re-enters with the same `classId`*, the inner call returns `emptyList()`

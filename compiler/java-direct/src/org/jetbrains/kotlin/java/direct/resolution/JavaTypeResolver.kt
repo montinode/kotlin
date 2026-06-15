@@ -7,6 +7,7 @@ package org.jetbrains.kotlin.java.direct.resolution
 
 import org.jetbrains.kotlin.builtins.jvm.JavaToKotlinClassMap
 import org.jetbrains.kotlin.fir.FirSession
+import org.jetbrains.kotlin.fir.declarations.FirDeclarationOrigin
 import org.jetbrains.kotlin.fir.declarations.FirRegularClass
 import org.jetbrains.kotlin.fir.declarations.FirResolvePhase
 import org.jetbrains.kotlin.fir.diagnostics.ConeSimpleDiagnostic
@@ -488,13 +489,25 @@ private fun findInheritedNestedClass(
 
 /**
  * Builtins-filtered class-existence probe: `true` if [classId] is known to the session's symbol
- * provider and not a Kotlin builtin (matching PSI behaviour for stdlib). Returns `false` for
- * sessions with no symbol provider — AST-only resolution paths (type parameters, current scope
- * classes, multi-part navigation) still work without it.
+ * provider and is not a Kotlin builtin. Returns `false` for sessions with no symbol provider —
+ * AST-only resolution paths (type parameters, current scope classes, multi-part navigation) still
+ * work without it.
+ *
+ * The `origin != BuiltIns` filter keeps this probe in agreement with PSI's file-backed class
+ * finder: PSI only resolves a Java type reference when an actual `.class`/`.java` file exists,
+ * whereas FIR's symbol provider also fetches the `kotlin.*` builtins from the `.kotlin_builtins`
+ * metadata bundled into the compiler.
+ *
+ * Without the filter `testInheritFromAnnotationClass2` fails: its `J.java` does
+ * `extends kotlin.annotation.Target`, and resolving that builtin lets FIR's
+ * `FirAnnotationClassInheritanceChecker` walk the whole supertype chain and emit extra
+ * `EXTENDING_AN_ANNOTATION_CLASS_ERROR`.
  */
 context(c: JavaResolutionContext)
-internal fun tryResolve(classId: ClassId): Boolean =
-    c.fileContext.session.cycleSafeTryResolveClass(classId)
+internal fun tryResolve(classId: ClassId): Boolean {
+    val symbol = c.fileContext.session.cycleSafeClassLikeSymbol(classId) ?: return false
+    return symbol.origin != FirDeclarationOrigin.BuiltIns
+}
 
 /**
  * Whether [classId] denotes an annotation class whose declared `@Target` lists `TYPE_USE`
