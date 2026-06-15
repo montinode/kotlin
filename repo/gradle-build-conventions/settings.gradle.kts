@@ -6,6 +6,11 @@ pluginManagement {
         mavenCentral { setUrl("https://cache-redirector.jetbrains.com/maven-central") }
         google { setUrl("https://cache-redirector.jetbrains.com/dl.google.com/dl/android/maven2") }
         gradlePluginPortal()
+        maven("https://redirector.kotlinlang.org/maven/dev") {
+            content {
+                includeGroup("org.jetbrains.kotlin")
+            }
+        }
     }
 }
 
