@@ -307,6 +307,8 @@ allprojects {
                 includeModule("org.jetbrains.intellij.deps", "jdom")
                 includeModule("org.jetbrains.intellij.deps", "log4j")
                 includeModule("org.jetbrains.intellij.deps", "asm-all")
+                includeModule("org.jetbrains.intellij.deps", "gradle-api")
+                includeModule("org.jetbrains.intellij.deps", "rwmutex-idea")
                 includeGroupByRegex("org.jetbrains.intellij.deps.fastutil.*")
                 includeGroupByRegex("org.jetbrains.intellij.deps.jna.*")
                 includeGroupByRegex("com.intellij.platform.*")
