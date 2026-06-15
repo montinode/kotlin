@@ -282,6 +282,32 @@ When profiling java-direct code paths:
 
 ---
 
+## Source Comment Conventions
+
+Comments in `compiler/java-direct/src/` are reviewed alongside the code. Write them
+for a future reader of the **merged** module, not as a development journal — this avoids
+a recurring cleanup pass before review. Apply these rules when adding or editing any
+comment or KDoc:
+
+- **No references to `implDocs/` docs.** They are transient and must never be mentioned
+  in source comments — not by filename, not by section number (`§6.x`), not by stage/phase
+  label (`Stage 2`, `Phase 3`, `pre-§6.5`). Put the explanation itself in the comment.
+- **Describe the current state only.** The module is unmerged, so comments must not narrate
+  past or superseded attempts ("used to live behind…", "the old first-segment shortcut",
+  "before the … cleanup", "now deleted `BinaryJavaClassFinder`", dated history). Drop the
+  history; keep what is true today.
+- **Avoid `javac-wrapper` / `TreeBased*` references** (the module is obsolete and being
+  removed). Keep only genuinely useful `javac` / PSI / JLS parity notes that aid understanding.
+- **Don't restate what a one-level usages search reveals** (callers, single call sites, line
+  numbers in other files) unless it is essential for understanding.
+- **Don't duplicate comments on declaration and use sites.** Prefer a declaration-site comment;
+  if the use site needs a note, keep it to a short cross-reference rather than repeating the
+  full explanation.
+- **Prefer bulleted lists over prose** for multi-point explanatory comments; omit trivial
+  information and introductory filler sentences.
+
+---
+
 ## Docs Maintenance
 
 Keep the working doc set small — these files are read into context every session.
@@ -301,7 +327,12 @@ Keep the working doc set small — these files are read into context every sessi
 
 ---
 
-*Last updated: 2026-06-09 (docs cleanup: archived `ITERATION_RESULTS` →
+*Last updated: 2026-06-15 (added the Source Comment Conventions section so review-ready
+comment style — no `implDocs`/stage references, current-state only, no `javac-wrapper`
+mentions, no decl/use-site duplication, bullets over prose — is the default and needs no
+cleanup pass before review.)*
+
+*Previously: 2026-06-09 (docs cleanup: archived `ITERATION_RESULTS` →
 `implDocs/archive/ITERATION_RESULTS_2026_06_01.md` and reset the log to a structured,
 capped template; moved 10 landed/superseded design docs — incl. the interface-rollback
 inventory and FIRSESSION-injection proposal — into `implDocs/archive/`; removed the
