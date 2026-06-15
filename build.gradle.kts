@@ -304,7 +304,11 @@ allprojects {
                 maven("https://packages.jetbrains.team/maven/p/ij/intellij-dependencies")
             }
             filter {
-                includeGroupByRegex("org\\.jetbrains\\.intellij\\.deps(\\..+)?")
+                includeModule("org.jetbrains.intellij.deps", "jdom")
+                includeModule("org.jetbrains.intellij.deps", "log4j")
+                includeModule("org.jetbrains.intellij.deps", "asm-all")
+                includeGroupByRegex("org.jetbrains.intellij.deps.fastutil.*")
+                includeGroupByRegex("org.jetbrains.intellij.deps.jna.*")
                 includeGroupByRegex("com.intellij.platform.*")
                 includeGroupByRegex("org.jetbrains.jps.*")
                 includeVersion("org.jetbrains.jps", "jps-javac-extension", "7")
