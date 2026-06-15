@@ -8,11 +8,7 @@ pluginManagement {
         mavenCentral { setUrl("https://cache-redirector.jetbrains.com/maven-central") }
         gradlePluginPortal()
 
-        maven("https://redirector.kotlinlang.org/maven/dev") {
-            content {
-                includeGroup("org.jetbrains.kotlin")
-            }
-        }
+        maven("https://redirector.kotlinlang.org/maven/dev")
     }
 }
 

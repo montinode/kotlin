@@ -32,14 +32,9 @@ pluginManagement {
         mavenCentral {
             url = uri("https://cache-redirector.jetbrains.com/maven-central")
         }
-
         gradlePluginPortal()
-
         maven {
             url = uri("https://redirector.kotlinlang.org/maven/dev")
-            content {
-                includeGroup("org.jetbrains.kotlin")
-            }
         }
     }
 
