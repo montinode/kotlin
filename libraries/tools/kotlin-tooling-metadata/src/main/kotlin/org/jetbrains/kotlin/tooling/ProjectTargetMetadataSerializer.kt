@@ -5,19 +5,14 @@
 
 package org.jetbrains.kotlin.tooling
 
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.descriptors.element
-import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import kotlinx.serialization.encoding.decodeStructure
-import kotlinx.serialization.encoding.encodeStructure
 import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonEncoder
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
@@ -25,6 +20,10 @@ import kotlinx.serialization.json.jsonObject
 
 /**
  * Custom serializer for [KotlinToolingMetadata.ProjectTargetMetadata].
+ *
+ * JSON-only serializer. Non-JSON encoders/decoders are not supported because
+ * [KotlinToolingMetadata] is exclusively serialized to/from JSON strings via
+ * [KotlinToolingMetadata.toJsonString] and [KotlinToolingMetadata.Companion.parseJson].
  *
  * The serialization contract requires that:
  * - The `extras` field is written to JSON only when it has at least one non-null sub-field
@@ -36,7 +35,7 @@ internal object ProjectTargetMetadataSerializer :
     KSerializer<KotlinToolingMetadata.ProjectTargetMetadata> {
 
     override val descriptor: SerialDescriptor = buildClassSerialDescriptor(
-        "org.jetbrains.kotlin.tooling.KotlinToolingMetadata.ProjectTargetMetadata"
+        KotlinToolingMetadata.ProjectTargetMetadata::class.java.name
     ) {
         element<String>("target")
         element<String>("platformType")
@@ -45,7 +44,6 @@ internal object ProjectTargetMetadataSerializer :
 
     private val extrasSerializer = KotlinToolingMetadata.ProjectTargetMetadata.Extras.serializer()
 
-    @OptIn(ExperimentalSerializationApi::class)
     override fun serialize(encoder: Encoder, value: KotlinToolingMetadata.ProjectTargetMetadata) {
         val jsonEncoder = encoder as? JsonEncoder
         if (jsonEncoder != null) {
@@ -60,12 +58,7 @@ internal object ProjectTargetMetadataSerializer :
             }
             jsonEncoder.encodeJsonElement(obj)
         } else {
-            // Fallback for non-JSON encoders: always write extras
-            encoder.encodeStructure(descriptor) {
-                encodeStringElement(descriptor, 0, value.target)
-                encodeStringElement(descriptor, 1, value.platformType)
-                encodeSerializableElement(descriptor, 2, extrasSerializer, value.extras)
-            }
+            error("${ProjectTargetMetadataSerializer::class.simpleName} supports JSON only")
         }
     }
 
@@ -84,22 +77,7 @@ internal object ProjectTargetMetadataSerializer :
             } ?: KotlinToolingMetadata.ProjectTargetMetadata.Extras()
             return KotlinToolingMetadata.ProjectTargetMetadata(target, platformType, extras)
         } else {
-            // Fallback for non-JSON decoders
-            var target = ""
-            var platformType = ""
-            var extras = KotlinToolingMetadata.ProjectTargetMetadata.Extras()
-            decoder.decodeStructure(descriptor) {
-                while (true) {
-                    when (val index = decodeElementIndex(descriptor)) {
-                        0 -> target = decodeStringElement(descriptor, 0)
-                        1 -> platformType = decodeStringElement(descriptor, 1)
-                        2 -> extras = decodeSerializableElement(descriptor, 2, extrasSerializer)
-                        CompositeDecoder.DECODE_DONE -> break
-                        else -> error("Unexpected index $index")
-                    }
-                }
-            }
-            return KotlinToolingMetadata.ProjectTargetMetadata(target, platformType, extras)
+            error("${ProjectTargetMetadataSerializer::class.simpleName} supports JSON only")
         }
     }
 }
