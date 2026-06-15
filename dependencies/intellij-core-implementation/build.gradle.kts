@@ -7,6 +7,7 @@ plugins {
 val intellijVersion = rootProject.extra["versions.intellijSdk"]
 
 dependencies {
+    api("com.jetbrains.intellij.platform:util-multiplatform:$intellijVersion") { isTransitive = false }
     api("com.jetbrains.intellij.platform:util-rt:$intellijVersion") { isTransitive = false }
     api("com.jetbrains.intellij.platform:util-class-loader:$intellijVersion") { isTransitive = false }
     api("com.jetbrains.intellij.platform:util-xml-dom:$intellijVersion") { isTransitive = false }
