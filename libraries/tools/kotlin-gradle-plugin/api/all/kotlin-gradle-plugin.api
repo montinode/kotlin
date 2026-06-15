@@ -5654,26 +5654,13 @@ public final class org/jetbrains/kotlin/gradle/targets/wasm/npm/WasmNpmResolverP
 
 public final class org/jetbrains/kotlin/gradle/targets/wasm/wasmtime/WasmtimeEnv : org/jetbrains/kotlin/gradle/targets/js/AbstractEnv {
 	public fun <init> (ZLjava/lang/String;ZLjava/lang/String;Ljava/lang/String;Ljava/io/File;Z)V
-	public final fun component1 ()Z
-	public final fun component2 ()Ljava/lang/String;
-	public final fun component3 ()Z
-	public final fun component4 ()Ljava/lang/String;
-	public final fun component5 ()Ljava/lang/String;
-	public final fun component6 ()Ljava/io/File;
-	public final fun component7 ()Z
-	public final fun copy (ZLjava/lang/String;ZLjava/lang/String;Ljava/lang/String;Ljava/io/File;Z)Lorg/jetbrains/kotlin/gradle/targets/wasm/wasmtime/WasmtimeEnv;
-	public static synthetic fun copy$default (Lorg/jetbrains/kotlin/gradle/targets/wasm/wasmtime/WasmtimeEnv;ZLjava/lang/String;ZLjava/lang/String;Ljava/lang/String;Ljava/io/File;ZILjava/lang/Object;)Lorg/jetbrains/kotlin/gradle/targets/wasm/wasmtime/WasmtimeEnv;
-	public fun equals (Ljava/lang/Object;)Z
 	public fun getAllowInsecureProtocol ()Z
 	public fun getDir ()Ljava/io/File;
 	public fun getDownload ()Z
 	public fun getDownloadBaseUrl ()Ljava/lang/String;
 	public fun getExecutable ()Ljava/lang/String;
-	public final fun getExecutablePath ()Ljava/io/File;
 	public fun getIvyDependency ()Ljava/lang/String;
-	public fun hashCode ()I
 	public final fun isWindows ()Z
-	public fun toString ()Ljava/lang/String;
 }
 
 public abstract class org/jetbrains/kotlin/gradle/targets/wasm/wasmtime/WasmtimeEnvSpec : org/jetbrains/kotlin/gradle/targets/js/EnvSpec {

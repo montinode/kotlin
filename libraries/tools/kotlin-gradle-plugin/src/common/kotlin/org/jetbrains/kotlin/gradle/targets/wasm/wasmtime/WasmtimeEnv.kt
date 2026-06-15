@@ -8,7 +8,7 @@ package org.jetbrains.kotlin.gradle.targets.wasm.wasmtime
 import org.jetbrains.kotlin.gradle.targets.js.AbstractEnv
 import java.io.File
 
-data class WasmtimeEnv(
+class WasmtimeEnv(
     override val download: Boolean,
     override val downloadBaseUrl: String?,
     override val allowInsecureProtocol: Boolean,
@@ -16,7 +16,4 @@ data class WasmtimeEnv(
     override val executable: String,
     override val dir: File,
     val isWindows: Boolean,
-) : AbstractEnv {
-    val executablePath: File
-        get() = File(executable)
-}
+) : AbstractEnv
