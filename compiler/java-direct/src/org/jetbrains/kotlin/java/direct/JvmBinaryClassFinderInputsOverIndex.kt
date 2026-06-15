@@ -24,33 +24,24 @@ import org.jetbrains.kotlin.name.FqName
 
 /**
  * Index-based, PSI-free implementation of [JvmBinaryClassFinderInputs] for binary `.class`
- * (and optionally `.sig`) files on the `java-direct` library session.
- *
- * Final form of the Stage 2 (= Phase 2 of
- * `compiler/java-direct/implDocs/PSI_CLASS_FINDER_USAGE_AND_REPLACEMENT.md`) refactor: this
- * class absorbs the body of the deleted `BinaryJavaClassFinder` (and, by transitivity, the
- * deleted `CombinedJavaClassFinder`). After §6.5 it is the single binary-side entry point
- * the deserializer ([org.jetbrains.kotlin.fir.java.deserialization.JvmClassFileBasedSymbolProvider])
- * reads through on the `java-direct` path, instead of routing binary lookups via
+ * (and optionally `.sig`) files on the `java-direct` library session. It is the single
+ * binary-side entry point the deserializer
+ * ([org.jetbrains.kotlin.fir.java.deserialization.JvmClassFileBasedSymbolProvider]) reads
+ * through on the `java-direct` path, instead of routing binary lookups via
  * [org.jetbrains.kotlin.fir.java.FirJavaFacade].
  *
- * ASM-driven materialization is delegated to [BinaryJavaClass] from
- * `compiler/frontend.common.jvm/src/.../load/java/structure/impl/classFiles/`, the same reader
- * K1 has been using for years — no new `JavaClass` implementation is needed.
+ * ASM-driven materialization is delegated to [BinaryJavaClass].
  *
- * The methods are observationally equivalent to the corresponding [JvmBinaryClassFinderInputs]
- * methods on the pre-§6.5 `BinaryJavaClassFinder` (which implemented `JvmBinaryClassFinderInputs`
- * directly):
+ * Method semantics:
  *
- *  - [hasTopLevelBinaryClass] mirrors `FirJavaFacade.hasTopLevelClassOf` semantics — checks the
- *    outermost-class name against the known names of the package.
+ *  - [hasTopLevelBinaryClass] checks the outermost-class name against the known names of the
+ *    package.
  *  - [knownBinaryClassNamesInPackage] enumerates the `.class`/`.sig` files in the package
  *    directly off the [JvmDependenciesIndex].
- *  - [hasBinaryPackage] mirrors `findPackage` non-`null`-ness.
- *  - [findBinaryClass] materialises a [BinaryJavaClass] from the bytecode, with the same
- *    `isFromSource || !hasMetadataAnnotation()` filter `FirJavaFacade.findClass` applies — Kotlin
- *    classes carrying `@Metadata` must not be returned to the deserializer through this entry
- *    point (they are handled by the Kotlin branch of `extractClassMetadata`).
+ *  - [hasBinaryPackage] reports whether the package is present.
+ *  - [findBinaryClass] materialises a [BinaryJavaClass] from the bytecode, filtering out Kotlin
+ *    classes carrying `@Metadata` (`isFromSource || !hasMetadataAnnotation()`) — those are
+ *    handled by the Kotlin branch of `extractClassMetadata`.
  *
  * @param index The same classpath index `CliVirtualFileFinder` uses for class/package lookups.
  * @param scope PSI search scope used to filter candidate `.class`/`.sig` virtual files; must
@@ -72,34 +63,29 @@ class JvmBinaryClassFinderInputsOverIndex(
     private val signatureParser = BinaryClassSignatureParser()
 
     /**
-     * Memoization mirroring `KotlinCliJavaFileManagerImpl.binaryCache`. The scope is treated as
-     * effectively constant per instance (one finder per library session), matching the caching
-     * invariant of the legacy implementation — see the comment block in
-     * `KotlinCliJavaFileManagerImpl.findClass`.
+     * Memoizes resolved binary classes. The scope is effectively constant per instance (one
+     * finder per library session).
      */
     private val binaryCache: MutableMap<ClassId, JavaClass?> = HashMap()
 
     /**
-     * Cache for the outer-most-class virtual file resolution. Identical role to
-     * `KotlinCliJavaFileManagerImpl.topLevelClassesCache`. Two slots — one filtered by [scope],
-     * the other unfiltered — because the per-call [ClassifierResolutionContext] is constructed
+     * Caches outer-most-class virtual file resolution. Two slots — one filtered by [scope], the
+     * other unfiltered — because the per-call [ClassifierResolutionContext] is constructed
      * against `allScope` semantics for cross-references read from the bytecode signature.
      */
     private val topLevelClassesCache: MutableMap<FqName, VirtualFile?> = HashMap()
     private val topLevelClassesCacheAllScope: MutableMap<FqName, VirtualFile?> = HashMap()
 
     /**
-     * Per-package known class-name cache. The index walk is hot on the call path through
-     * [knownBinaryClassNamesInPackage] (deserializer L139 in pre-§6.3 numbering and indirectly
-     * via [hasTopLevelBinaryClass]), so we keep a small per-finder memoization to avoid
-     * traversing the index repeatedly for the same package.
+     * Per-package known class-name cache. The index walk is hot on the path through
+     * [knownBinaryClassNamesInPackage] and [hasTopLevelBinaryClass], so memoize per package to
+     * avoid traversing the index repeatedly.
      */
     private val knownClassNamesCache: MutableMap<FqName, Set<String>> = HashMap()
 
     override fun hasTopLevelBinaryClass(classId: ClassId): Boolean {
-        // Mirrors `FirJavaFacade.hasTopLevelClassOf`: check the outermost-class name against the
-        // known names of the package. The private `FqName.topLevelName()` helper inside
-        // `FirJavaFacade` is just `asString().substringBefore(".")`; inlined here.
+        // Check the outermost-class name against the known names of the package
+        // (`FqName.topLevelName()` is `asString().substringBefore(".")`, inlined here).
         val knownNames = knownClassNamesInPackage(classId.packageFqName)
         val topLevelName = classId.relativeClassName.asString().substringBefore(".")
         return topLevelName in knownNames
@@ -118,9 +104,7 @@ class JvmBinaryClassFinderInputsOverIndex(
     }
 
     override fun findBinaryClass(classId: ClassId, knownContent: ByteArray?): JavaClass? =
-        // Mirrors `FirJavaFacade.findClass`'s `takeIf` filter — Kotlin classes carrying
-        // `@Metadata` must not be returned to the deserializer; they are handled by the Kotlin
-        // class branch of `extractClassMetadata`.
+        // Filter out Kotlin classes carrying `@Metadata` (see class KDoc).
         findClassImpl(JavaClassFinder.Request(classId, knownContent), applyScopeFilter = true)
             ?.takeIf { it.isFromSource || !it.hasMetadataAnnotation() }
 
@@ -128,10 +112,9 @@ class JvmBinaryClassFinderInputsOverIndex(
         knownClassNamesCache.getOrPut(packageFqName) {
             val result = LinkedHashSet<String>()
             index.traverseClassVirtualFilesInPackage(packageFqName, extensions) { file ->
-                // Mirror `KotlinCliJavaFileManagerImpl.knownClassNamesInPackage`: include every
-                // class file's name, including ones that contain `$`. Genuine inner-class spill
-                // (`Outer$Inner.class`) is filtered later inside [findClassImpl] via
-                // `isNotTopLevelClass(classContent)`. A blanket name-level `$` filter wrongly
+                // Include every class file's name, including ones that contain `$`. Genuine
+                // inner-class spill (`Outer$Inner.class`) is filtered later inside [findClassImpl]
+                // via `isNotTopLevelClass(classContent)`. A blanket name-level `$` filter wrongly
                 // hides legitimate top-level classes whose JVM name contains `$` — e.g. Scala
                 // companion modules (`Foo$.class`) — which Kotlin imports via backticks.
                 result.add(file.nameWithoutExtension)
@@ -144,8 +127,7 @@ class JvmBinaryClassFinderInputsOverIndex(
      * Used by the per-call [ClassifierResolutionContext] to resolve cross-references read from
      * the bytecode signature (supertypes, parameter types, etc.). References from one binary
      * class to another must be resolvable across the **entire** classpath, not only within the
-     * (potentially narrower) [scope] this finder was given for the current session. Mirrors the
-     * `allScope` choice in `KotlinCliJavaFileManagerImpl.findClass` (cli-base).
+     * (potentially narrower) [scope] this finder was given for the current session.
      */
     private fun findClassWithoutScopeFilter(request: JavaClassFinder.Request): JavaClass? =
         findClassImpl(request, applyScopeFilter = false)
@@ -178,8 +160,7 @@ class JvmBinaryClassFinderInputsOverIndex(
             // Top-level class.
             val classContent = classFileContentFromRequest ?: virtualFile.contentsToByteArray()
             // Defensive: a class file whose name contains '$' but is actually nested must not be
-            // returned as a top-level class. Mirrors the same guard in
-            // `KotlinCliJavaFileManagerImpl.findClass`.
+            // returned as a top-level class.
             if (virtualFile.nameWithoutExtension.contains("$") && isNotTopLevelClass(classContent)) {
                 return@getOrPut null
             }
@@ -189,7 +170,6 @@ class JvmBinaryClassFinderInputsOverIndex(
             // info from every `BinaryJavaClass` it materialises. Sharing a single instance
             // across calls bleeds the type parameters of one class into the resolution of an
             // unrelated one (symptom: "Unresolved type for E" / wrong overload selection).
-            // Mirrors `KotlinCliJavaFileManagerImpl.findClass` line 151.
             val resolver = ClassifierResolutionContext { ref ->
                 findClassWithoutScopeFilter(JavaClassFinder.Request(ref))
             }

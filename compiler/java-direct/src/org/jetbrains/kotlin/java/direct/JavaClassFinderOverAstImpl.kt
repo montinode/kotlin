@@ -81,16 +81,13 @@ class JavaClassFinderOverAstImpl internal constructor(
         return packageIndexer.ensurePackageIndexed(classId.packageFqName).containsKey(topLevelName)
     }
 
-    // ---- Source-only probes (Stage 2 §6.2 / §6.5 of
-    // `compiler/java-direct/implDocs/PSI_CLASS_FINDER_USAGE_AND_REPLACEMENT.md`) ----
+    // ---- Source-only probes ----
     //
-    // After §6.5 removed `CombinedJavaClassFinder`, `JavaSymbolProvider` reads
-    // `isInSourceIndex` / `hasPackageInSources` / `sourceClassNamesInPackage` directly off this
-    // finder. Override `isInSourceIndex` to keep the §6.2 narrowing (the default on
-    // [JavaClassFinder] is `true` for non-combined finders); [hasPackageInSources] and
-    // [sourceClassNamesInPackage] already match the desired source-only semantics via their
-    // defaults (`findPackage` / `knownClassNamesInPackage`), which on this finder are
-    // source-only by construction.
+    // `JavaSymbolProvider` reads `isInSourceIndex` / `hasPackageInSources` /
+    // `sourceClassNamesInPackage` directly off this finder. `isInSourceIndex` is overridden below
+    // because the [JavaClassFinder] default is `true`; [hasPackageInSources] and
+    // [sourceClassNamesInPackage] are already source-only by construction via their defaults
+    // (`findPackage` / `knownClassNamesInPackage`).
 
     override fun isInSourceIndex(classId: ClassId): Boolean = isClassInIndex(classId)
 
@@ -132,10 +129,9 @@ class JavaClassFinderOverAstImpl internal constructor(
         //  3. The package is an ancestor of an indexed Java source file — e.g. a single file at
         //     `priv/members/check/Foo.java` makes `priv` and `priv.members` valid Java packages
         //     too, matching PSI's [org.jetbrains.kotlin.load.java.JavaClassFinderImpl.findPackage]
-        //     behaviour. Required for source parity once [BinaryJavaClassFinder] is the binary
-        //     half (it only consults binary roots and cannot see source-only ancestor packages),
-        //     otherwise dotted FQN references and star imports across non-direct ancestors fail
-        //     to resolve.
+        //     behaviour. Required because the binary half only consults binary roots and cannot
+        //     see source-only ancestor packages; otherwise dotted FQN references and star imports
+        //     across non-direct ancestors fail to resolve.
         val classesByName = packageIndexer.ensurePackageIndexed(fqName)
         if (classesByName.isNotEmpty()) return JavaPackageOverAst(fqName, this)
         if (packageInfoIndexer.hasPackageAnnotations(fqName)) return JavaPackageOverAst(fqName, this)
