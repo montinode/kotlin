@@ -63,11 +63,6 @@ public interface CommonJsAndWasmCompilerKlibArguments : CommonJsAndWasmArguments
     /**
      * Generate a packed klib into the directory specified by '-ir-output-dir'.
      *
-     * This argument is deprecated. Producing a packed klib is now the default behavior. 
-     *
-     * The '-nopack' argument can be used instead to determine if a packed klib file will be produced.
-     * Setting this argument to something other than `null` overrides the value from '-nopack'.
-     *
      * WARNING: this option is EXPERIMENTAL and it may be changed in the future without notice or may be removed entirely.
      *
      * Deprecated in Kotlin version 2.4.20.
@@ -80,11 +75,6 @@ public interface CommonJsAndWasmCompilerKlibArguments : CommonJsAndWasmArguments
 
     /**
      * Generate an unpacked klib into the directory specified by '-ir-output-dir'.
-     *
-     * This argument is deprecated.
-     *  
-     * The '-nopack' argument should be used to determine if a packed klib file will be produced.
-     * Setting this argument to something other than `null` overrides the value from '-nopack'.
      *
      * WARNING: this option is EXPERIMENTAL and it may be changed in the future without notice or may be removed entirely.
      *
