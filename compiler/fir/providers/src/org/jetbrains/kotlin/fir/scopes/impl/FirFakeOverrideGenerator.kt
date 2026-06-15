@@ -24,15 +24,14 @@ import org.jetbrains.kotlin.fir.scopes.DeferredCallableCopyReturnType
 import org.jetbrains.kotlin.fir.scopes.deferredCallableCopyReturnType
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.*
+import org.jetbrains.kotlin.fir.symbols.lazyResolveToPhase
 import org.jetbrains.kotlin.fir.types.*
 import org.jetbrains.kotlin.fir.types.builder.buildResolvedTypeRef
 import org.jetbrains.kotlin.fir.types.impl.ConeTypeParameterTypeImpl
 import org.jetbrains.kotlin.fir.types.impl.FirImplicitTypeRefImplWithoutSource
-import org.jetbrains.kotlin.fir.utils.exceptions.withFirEntry
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.utils.addToStdlib.runIf
-import org.jetbrains.kotlin.utils.exceptions.checkWithAttachment
 
 object FirFakeOverrideGenerator {
     fun createSubstitutionOverrideFunction(
@@ -292,7 +291,7 @@ object FirFakeOverrideGenerator {
         origin: FirDeclarationOrigin,
         copyDefaultValues: Boolean = false,
     ) {
-        checkStatusIsResolved(baseFunction)
+        ensureStatusIsResolved(baseFunction)
         annotations += baseFunction.annotations
 
         @Suppress("NAME_SHADOWING")
@@ -724,7 +723,7 @@ object FirFakeOverrideGenerator {
         deferredReturnTypeCalculation: DeferredCallableCopyReturnType?,
         updateReceiver: Boolean = true,
     ) {
-        checkStatusIsResolved(baseVariable)
+        ensureStatusIsResolved(baseVariable)
         annotations += baseVariable.annotations
 
         @Suppress("NAME_SHADOWING")
@@ -937,18 +936,8 @@ object FirFakeOverrideGenerator {
         object Nothing : Maybe<kotlin.Nothing>()
     }
 
-    private fun checkStatusIsResolved(member: FirCallableDeclaration) {
-        checkWithAttachment(
-            member.status is FirResolvedDeclarationStatus,
-            message = {
-                "Status should be resolved for a declaration to create its fake override, " +
-                        "otherwise the status of the fake override will never be resolved." +
-                        "The status was unresolved for ${member::class.java.simpleName}"
-            }
-        ) {
-            withFirEntry("declaration", member)
-            withEntry("declarationStatus", member.status) { it.toString() }
-        }
+    private fun ensureStatusIsResolved(member: FirCallableDeclaration) {
+        member.lazyResolveToPhase(FirResolvePhase.STATUS)
     }
 
     /**

@@ -256,7 +256,6 @@ class JavaClassUseSiteMemberScope(
     private fun FirPropertySymbol.findSetterOverride(
         scope: FirScope,
     ): FirNamedFunctionSymbol? {
-        val propertyType = fir.returnTypeRef.coneTypeSafe<ConeKotlinType>() ?: return null
         val receiverCount = (if (receiverParameterSymbol != null) 1 else 0) + contextParameterSymbols.size
 
         return scope.getFunctions(Name.identifier(JvmAbi.setterName(fir.name.asString()))).firstNotNullOfOrNull factory@{ candidateSymbol ->
@@ -275,7 +274,7 @@ class JavaClassUseSiteMemberScope(
 
             candidateSymbol.takeIf {
                 candidate.isAcceptableAsAccessorOverride() && AbstractTypeChecker.equalTypes(
-                    session.typeContext, parameterType, propertyType
+                    session.typeContext, parameterType, resolvedReturnType
                 )
             }
         }
