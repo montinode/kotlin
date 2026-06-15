@@ -31,74 +31,55 @@ enum class LinkerOutputKind {
     EXECUTABLE
 }
 
-private sealed class Ar(val ar: String) {
-    class GnuAr(ar: String) : Ar(ar)
-    class LlvmAr(ar: String) : Ar(ar)
-}
-
-// Here we take somewhat unexpected approach - we create the thin
-// library, and then repack it during post-link phase.
-// This way we ensure .a inputs are properly processed.
-// TODO KT-84037: this should be reworked.
-private fun Ar.staticArCommands(
+// Build a static library / cache with a single llvm-ar invocation, used uniformly for every target. llvm-ar produces
+// archives that every target's linker accepts, so it replaces the assortment of host/target-specific GNU `ar` versions
+// and the undocumented thin-archive flattening trick they relied on (which doesn't even work with llvm-ar).
+// See KT-84037; `llvmAr` is the bundled `<llvmHome>/bin/llvm-ar`, which is present for all hosts.
+private fun llvmArStaticLibraryCommands(
+    llvmAr: String,
     executable: ExecutableFile,
     objectFiles: List<ObjectFile>,
     libraries: List<String>,
     tempFiles: TempFiles,
-) = when {
-    HostManager.hostIsMingw -> {
-        // TODO KT-84037: it would be nice to pass the `D` modifier to make it deterministic.
-        // But it is confusing with the `u` modifier.
-
-        val temp = executable.replace('/', '\\') + "__"
-        val arWindows = ar.replace('/', '\\')
-        listOf(
-            Command(arWindows, "-rucT", temp).apply {
-                +objectFiles
-                +libraries
-            },
-            Command("cmd", "/c").apply {
-                +"(echo create $executable & echo addlib ${temp} & echo save & echo end) | $arWindows -M"
-            },
-            Command("cmd", "/c", "del", "/q", temp)
-        )
+): List<Command> {
+    // Operation + modifiers: c - create without a warning, s - write the symbol index (the linker resolves members through it),
+    // D - deterministic output (zeroed timestamps/uids).
+    val operation = if (libraries.isEmpty()) {
+        // The common case (in particular every per-file cache fragment): only object files. The 'r' operation
+        // replaces/inserts members, so re-running over a stale archive (e.g. after an interrupted build) stays
+        // correct rather than appending duplicates.
+        "rcsD"
+    } else {
+        // With .a inputs we must flatten them — add their members instead of the archive itself, since linkers don't
+        // recurse into member archives. llvm-ar does this with the 'L' modifier (the replacement for the GNU-ar
+        // thin-archive trick — KT-84035), which is only valid with the 'q' (quick-append) operation; 'q' assumes a
+        // fresh output, which holds for a normal `-produce static`.
+        "qcsDL"
     }
-    HostManager.hostIsLinux || HostManager.hostIsMac -> {
-        // The modifier to make `ar` deterministic (i.e. not include the timestamp and UID/GID in the output):
-        val D = when (this) {
-            is Ar.GnuAr -> {
-                // The "D" modifier can be used with `ar -M`, but this is not documented.
-                // Newer GNU ar versions are deterministic by default.
-                "D"
-            }
-            is Ar.LlvmAr -> {
-                // llvm-ar doesn't support `D` with `llvm-ar -M`.
-                // But it also doesn't need this as it is deterministic by default.
-                ""
-            }
+    val members = objectFiles + libraries
+    return listOf(Command(llvmAr).apply {
+        // A static binary that bundles a per-file cache pulls in hundreds of archives; passing them all on
+        // the command line overflows the Windows command-line length limit (CreateProcess error=206).
+        // Once the inputs get long, spill them into an llvm-ar response file.
+        if (members.sumOf { it.length } > MAX_LINKER_COMMAND_LINE_LENGTH) {
+            // `--rsp-quoting=windows` makes llvm-ar treat backslashes in the quoted paths literally —
+            // the natural quoting for Windows paths; forward-slash Unix paths are unaffected.
+            +"--rsp-quoting=windows"
+            +operation
+            +executable
+            val responseFile = tempFiles.create("ar-members", ".rsp")
+            responseFile.writeLines(members.map { "\"$it\"" })
+            +"@${responseFile.absolutePath}"
+        } else {
+            +operation
+            +executable
+            +members
         }
-
-        // The `ar -M` script (`create`/`addlib`) is whitespace-tokenized and does not support quoting or escaping
-        // of file names. To stay correct when `executable` lives under a directory whose path contains spaces,
-        // we run `ar` from its parent directory and reference it by the base name.
-        val executableFile = File(executable)
-        val arScript = tempFiles.create("ar-repack", ".mri").apply {
-            writeText("create ${executableFile.name}\naddlib ${executableFile.name}\nsave\nend\n")
-        }
-        listOf(
-            Command(ar, "cqT$D", executable).apply {
-                +objectFiles
-                +libraries
-            },
-            Command(
-                listOf(ar, "-M$D"),
-                redirectInputFile = java.io.File(arScript.absolutePath),
-                workingDirectory = java.io.File(executableFile.parentFile.absolutePath),
-            )
-        )
-    }
-    else -> TODO("Unsupported host ${HostManager.host}")
+    })
 }
+
+// Kept safely below the Windows command-line length limit (32767), leaving room for the program path and the rest of the arguments.
+private const val MAX_LINKER_COMMAND_LINE_LENGTH = 30_000
 
 class LinkerArguments(
     val tempFiles: TempFiles,
@@ -172,7 +153,7 @@ class AndroidLinker(targetProperties: AndroidConfigurables)
     }
     private val prefix = "$absoluteTargetToolchain/bin/${clangTarget}${Android.API}"
     private val clang = if (HostManager.hostIsMingw) "$prefix-clang.cmd" else "$prefix-clang"
-    private val ar = Ar.GnuAr("$absoluteTargetToolchain/${targetProperties.targetTriple.withoutVendor()}/bin/ar")
+    private val llvmAr = "$absoluteLlvmHome/bin/llvm-ar"
 
     override val useCompilerDriverAsLinker: Boolean get() = true
 
@@ -183,7 +164,7 @@ class AndroidLinker(targetProperties: AndroidConfigurables)
             "Sanitizers are unsupported"
         }
         if (kind == LinkerOutputKind.STATIC_LIBRARY)
-            return ar.staticArCommands(executable, objectFiles, staticLibraries, tempFiles)
+            return llvmArStaticLibraryCommands(llvmAr, executable, objectFiles, staticLibraries, tempFiles)
 
         val dynamic = kind == LinkerOutputKind.DYNAMIC_LIBRARY
         val toolchainSysroot = "${absoluteTargetToolchain}/sysroot"
@@ -420,11 +401,7 @@ class MacOSBasedLinker(targetProperties: AppleConfigurables)
 class GccBasedLinker(targetProperties: GccConfigurables)
     : LinkerFlags(targetProperties), GccConfigurables by targetProperties {
 
-    private val ar = if (HostManager.hostIsLinux) {
-        Ar.GnuAr("$absoluteTargetToolchain/bin/ar")
-    } else {
-        Ar.LlvmAr("$absoluteTargetToolchain/bin/llvm-ar")
-    }
+    private val llvmAr = "$absoluteLlvmHome/bin/llvm-ar"
     override val libGcc = "$absoluteTargetSysRoot/${super.libGcc}"
 
     private val specificLibs = abiSpecificLibraries.map { "-L${absoluteTargetSysRoot}/$it" }
@@ -447,7 +424,7 @@ class GccBasedLinker(targetProperties: GccConfigurables)
             require(sanitizer == null) {
                 "Sanitizers are unsupported"
             }
-            return ar.staticArCommands(executable, objectFiles, staticLibraries, tempFiles)
+            return llvmArStaticLibraryCommands(llvmAr, executable, objectFiles, staticLibraries, tempFiles)
         }
         val dynamic = kind == LinkerOutputKind.DYNAMIC_LIBRARY
         val crtPrefix = "$absoluteTargetSysRoot/$crtFilesLocation"
@@ -503,12 +480,7 @@ class GccBasedLinker(targetProperties: GccConfigurables)
 class MingwLinker(targetProperties: MingwConfigurables)
     : LinkerFlags(targetProperties), MingwConfigurables by targetProperties {
 
-    // TODO: Maybe always use llvm-ar?
-    private val ar = if (HostManager.hostIsMingw) {
-        Ar.GnuAr("$absoluteTargetToolchain/bin/ar")
-    } else {
-        Ar.LlvmAr("$absoluteLlvmHome/bin/llvm-ar")
-    }
+    private val llvmAr = "$absoluteLlvmHome/bin/llvm-ar"
     private val clang = "$absoluteLlvmHome/bin/clang++"
 
     override val useCompilerDriverAsLinker: Boolean get() = true
@@ -532,14 +504,32 @@ class MingwLinker(targetProperties: MingwConfigurables)
             "Sanitizers are unsupported"
         }
         if (kind == LinkerOutputKind.STATIC_LIBRARY)
-            return ar.staticArCommands(executable, objectFiles, staticLibraries, tempFiles)
+            return llvmArStaticLibraryCommands(llvmAr, executable, objectFiles, staticLibraries, tempFiles)
 
         val dynamic = kind == LinkerOutputKind.DYNAMIC_LIBRARY
+
+        // A per-file cache (e.g. the one for the stdlib) may contribute hundreds of static libraries. Passing them all
+        // directly on the command line overflows the Windows command-line length limit, making CreateProcess fail with
+        // error=206 ("The filename or extension is too long"). So pass them via a clang response file (@file), which
+        // clang reads itself instead of through CreateProcess. The paths are simply double-quoted and clang is told
+        // `--rsp-quoting=windows` (below), so backslashes in Windows paths are kept literally — the same quoting the
+        // llvm-ar response file uses. Forward-slash Unix paths from cross-compilation are unaffected.
+        fun List<String>.asLinkerInputs(responseFilePrefix: String): List<String> = if (isEmpty()) this
+        else tempFiles.create(responseFilePrefix, ".rsp").let { responseFile ->
+            responseFile.writeLines(map { "\"$it\"" })
+            listOf("@${responseFile.absolutePath}")
+        }
+
+        val staticLibrariesArgs = staticLibraries.asLinkerInputs("staticlibs")
+        val dynamicLibrariesArgs = dynamicLibraries.asLinkerInputs("dynamiclibs")
+        val usesResponseFile = staticLibraries.isNotEmpty() || dynamicLibraries.isNotEmpty()
 
         fun Command.constructLinkerArguments(
                 additionalArguments: List<String> = listOf(),
                 skipDefaultArguments: List<String> = listOf()
         ): Command = apply {
+            // Must precede the @response-file arguments so clang applies this quoting when expanding them.
+            if (usesResponseFile) +"--rsp-quoting=windows"
             +listOf("--sysroot", absoluteTargetSysRoot)
             +listOf("-target", targetTriple.toString())
             +listOf("-o", executable)
@@ -549,8 +539,8 @@ class MingwLinker(targetProperties: MingwConfigurables)
             }
             if (!debug) +linkerNoDebugFlags
             if (dynamic) +linkerDynamicFlags
-            +staticLibraries
-            +dynamicLibraries
+            +staticLibrariesArgs
+            +dynamicLibrariesArgs
             +linkerArgs
             +linkerKonanFlags.filterNot { it in skipDefaultArguments }
             +additionalArguments
