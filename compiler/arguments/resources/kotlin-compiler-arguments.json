@@ -3790,7 +3790,7 @@
                             "valueInVersions": []
                         },
                         "releaseVersionsMetadata": {
-                            "introducedVersion": "2.6.0",
+                            "introducedVersion": "2.4.20",
                             "stabilizedVersion": null,
                             "deprecatedVersion": null,
                             "removedVersion": null

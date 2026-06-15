@@ -17,6 +17,7 @@ import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
 import org.jetbrains.kotlin.fir.expressions.FirImplicitInvokeCall
 import org.jetbrains.kotlin.fir.expressions.FirQualifiedAccessExpression
 import org.jetbrains.kotlin.config.AnalysisFlags
+import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.fir.languageVersionSettings
 import org.jetbrains.kotlin.fir.references.toResolvedFunctionSymbol
 import org.jetbrains.kotlin.fir.references.toResolvedVariableSymbol
@@ -33,6 +34,8 @@ import org.jetbrains.kotlin.fir.types.ConeDynamicType
 object FirCapturedVariableStabilityFunctionChecker : AbstractFirPropertyInitializationChecker(MppCheckerKind.Common) {
     context(reporter: DiagnosticReporter, context: CheckerContext)
     override fun analyze(data: VariableInitializationInfoData) {
+        if (!context.session.languageVersionSettings.supportsFeature(LanguageFeature.ReportEscapingCapturedVariable)) return
+
         val trackedProperties = data.properties
             .filterIsInstance<FirLocalPropertySymbol>()
             .filterTo(linkedSetOf()) { symbol ->
