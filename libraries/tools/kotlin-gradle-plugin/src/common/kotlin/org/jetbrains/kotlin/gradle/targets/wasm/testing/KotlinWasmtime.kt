@@ -3,7 +3,7 @@
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
-package org.jetbrains.kotlin.gradle.targets.js.testing
+package org.jetbrains.kotlin.gradle.targets.wasm.testing
 
 import org.gradle.api.file.Directory
 import org.gradle.api.provider.Provider
@@ -13,9 +13,12 @@ import org.jetbrains.kotlin.gradle.internal.testing.TCServiceMessagesTestExecuti
 import org.jetbrains.kotlin.gradle.targets.js.RequiredKotlinJsDependency
 import org.jetbrains.kotlin.gradle.targets.js.internal.parseNodeJsStackTraceAsJvm
 import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrCompilation
-import org.jetbrains.kotlin.gradle.targets.js.ir.wasmtimeInvokeArgs
-import org.jetbrains.kotlin.gradle.targets.js.ir.wasmtimeProposalArgs
+import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
+import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTestFramework
+import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinTestRunnerCliArgs
 import org.jetbrains.kotlin.gradle.targets.wasm.wasmtime.WasmtimePlugin
+import org.jetbrains.kotlin.gradle.targets.wasm.wasmtimeInvokeArgs
+import org.jetbrains.kotlin.gradle.targets.wasm.wasmtimeProposalArgs
 import org.jetbrains.kotlin.gradle.utils.getFile
 import org.jetbrains.kotlin.gradle.utils.processes.ProcessLaunchOptions
 

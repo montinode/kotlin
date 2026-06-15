@@ -3,15 +3,17 @@
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
-package org.jetbrains.kotlin.gradle.targets.js.ir
+package org.jetbrains.kotlin.gradle.targets.wasm
 
 import org.gradle.api.Action
-import org.gradle.api.file.RegularFile
-import org.gradle.api.provider.Provider
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
-import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinWasmtimeDsl
+import org.jetbrains.kotlin.gradle.targets.js.ir.JsIrBinary
+import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrSubTarget
+import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrTarget
+import org.jetbrains.kotlin.gradle.targets.js.ir.WasmBinary
 import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
-import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinWasmtime
+import org.jetbrains.kotlin.gradle.targets.wasm.testing.KotlinWasmtime
+import org.jetbrains.kotlin.gradle.targets.wasm.dsl.KotlinWasmtimeDsl
 import org.jetbrains.kotlin.gradle.targets.wasm.wasmtime.WasmtimeExec
 import org.jetbrains.kotlin.gradle.targets.wasm.wasmtime.WasmtimePlugin
 import org.jetbrains.kotlin.gradle.utils.withType

@@ -9,6 +9,7 @@ import org.gradle.api.Action
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.plugin.mpp.HasBinaries
 import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsBinaryContainer
+import org.jetbrains.kotlin.gradle.targets.wasm.dsl.KotlinWasmtimeDsl
 
 /**
  * Base configuration options for the compilation of Kotlin WasmWasi targets.
@@ -38,7 +39,7 @@ interface KotlinWasmWasiTargetDsl :
      * the required environment and dependencies for running and testing
      * using Wasmtime.
      *
-     * @see KotlinWasmtimeDsl
+     * @see org.jetbrains.kotlin.gradle.targets.wasm.dsl.KotlinWasmtimeDsl
      */
     @ExperimentalWasmDsl
     fun wasmtime() = wasmtime { }
@@ -52,7 +53,7 @@ interface KotlinWasmWasiTargetDsl :
      *
      * The target can be configured using [body].
      *
-     * @see KotlinWasmtimeDsl
+     * @see org.jetbrains.kotlin.gradle.targets.wasm.dsl.KotlinWasmtimeDsl
      */
     @ExperimentalWasmDsl
     fun wasmtime(body: KotlinWasmtimeDsl.() -> Unit)

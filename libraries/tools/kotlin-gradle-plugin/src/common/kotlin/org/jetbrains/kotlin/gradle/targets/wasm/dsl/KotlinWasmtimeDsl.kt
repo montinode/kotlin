@@ -3,10 +3,11 @@
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
-package org.jetbrains.kotlin.gradle.targets.js.dsl
+package org.jetbrains.kotlin.gradle.targets.wasm.dsl
 
 import org.gradle.api.Action
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsSubTargetDsl
 import org.jetbrains.kotlin.gradle.targets.wasm.wasmtime.WasmtimeExec
 
 /**
@@ -18,7 +19,7 @@ import org.jetbrains.kotlin.gradle.targets.wasm.wasmtime.WasmtimeExec
 interface KotlinWasmtimeDsl : KotlinJsSubTargetDsl {
 
     /**
-     * Configure the default [WasmtimeExec] task that **runs** the Kotlin WasmWasi target.
+     * Configure the default [org.jetbrains.kotlin.gradle.targets.wasm.wasmtime.WasmtimeExec] task that **runs** the Kotlin WasmWasi target.
      *
      * @see org.jetbrains.kotlin.gradle.targets.wasm.wasmtime.WasmtimeExec
      */

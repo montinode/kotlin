@@ -12,8 +12,7 @@ import org.gradle.work.DisableCachingByDefault
 import org.gradle.work.NormalizeLineEndings
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrCompilation
-import org.jetbrains.kotlin.gradle.targets.js.ir.wasmtimeInvokeArgs
-import org.jetbrains.kotlin.gradle.targets.js.ir.wasmtimeProposalArgs
+import org.jetbrains.kotlin.gradle.targets.wasm.wasmtimeProposalArgs
 import org.jetbrains.kotlin.gradle.tasks.registerTask
 import org.jetbrains.kotlin.gradle.utils.getFile
 import org.jetbrains.kotlin.gradle.utils.newFileProperty

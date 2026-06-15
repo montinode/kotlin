@@ -3,12 +3,15 @@
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
-package org.jetbrains.kotlin.gradle.targets.js.ir
+package org.jetbrains.kotlin.gradle.targets.wasm
 
 import org.gradle.api.tasks.TaskProvider
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsBinaryMode
-import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrSubTarget.Companion.RUN_TASK_NAME
+import org.jetbrains.kotlin.gradle.targets.js.ir.ExecutableWasm
+import org.jetbrains.kotlin.gradle.targets.js.ir.JsEnvironmentConfigurator
+import org.jetbrains.kotlin.gradle.targets.js.ir.JsIrBinary
+import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrSubTarget
 import org.jetbrains.kotlin.gradle.targets.wasm.wasmtime.WasmtimeExec
 import org.jetbrains.kotlin.gradle.tasks.locateTask
 import org.jetbrains.kotlin.util.capitalizeDecapitalize.toLowerCaseAsciiOnly
@@ -20,7 +23,7 @@ internal class WasmtimeEnvironmentConfigurator(subTarget: KotlinJsIrSubTarget) :
     override fun configureBinaryRun(binary: JsIrBinary): TaskProvider<WasmtimeExec> {
         val binaryRunName = subTarget.disambiguateCamelCased(
             binary.mode.name.toLowerCaseAsciiOnly(),
-            RUN_TASK_NAME
+            KotlinJsIrSubTarget.RUN_TASK_NAME
         )
         val locateTask = project.locateTask<WasmtimeExec>(binaryRunName)
         if (locateTask != null) return locateTask
