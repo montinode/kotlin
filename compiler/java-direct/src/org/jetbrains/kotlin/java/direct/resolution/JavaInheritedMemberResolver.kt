@@ -9,6 +9,7 @@ import org.jetbrains.kotlin.java.direct.model.JavaClassOverAst
 import org.jetbrains.kotlin.load.java.JavaClassFinder
 import org.jetbrains.kotlin.load.java.structure.JavaClass
 import org.jetbrains.kotlin.load.java.structure.JavaClassifierType
+import org.jetbrains.kotlin.load.java.structure.classId
 import org.jetbrains.kotlin.load.java.structure.impl.splitCanonicalFqName
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
@@ -37,7 +38,6 @@ import org.jetbrains.kotlin.name.Name
  *   recover the AST-side `JavaClass` for outer-class type-argument substitution.
  */
 internal class JavaInheritedMemberResolver(
-    private val packageFqName: FqName,
     private val classFinder: LeanJavaClassFinder?,
     private val sameFileTopLevelClassProvider: (Name) -> JavaClass?,
 ) {
@@ -51,7 +51,7 @@ internal class JavaInheritedMemberResolver(
      * `JavaClass` for cross-file Java-source supertypes; falls back to
      * [sameFileTopLevelClassProvider] for same-file supertypes.
      */
-    fun findInnerClassFromSupertypes(name: Name, javaClass: JavaClass, visited: MutableSet<JavaClass>): JavaClass? {
+    fun findInnerClassFromSupertypes(name: Name, javaClass: JavaClassOverAst, visited: MutableSet<JavaClass>): JavaClass? {
         if (!visited.add(javaClass)) return null
 
         var foundInnerClass: JavaClass? = null
@@ -65,25 +65,27 @@ internal class JavaInheritedMemberResolver(
             }
         }
 
-        if (foundInnerClass == null) {
-            val javaClassOverAst = javaClass as? JavaClassOverAst
-            if (javaClassOverAst != null && classFinder != null) {
-                val containingClassId = fqNameInPackageToClassId(javaClassOverAst.fqName, packageFqName)
-                val candidates = classFinder.collectInheritedInnerClasses(containingClassId)[name.asString()] ?: emptySet()
-                if (candidates.size > 1) return null
-                if (candidates.size == 1) return classFinder.findClass(JavaClassFinder.Request(candidates.first()))
-            }
-        }
+        if (foundInnerClass != null || classFinder == null) return foundInnerClass
 
-        return foundInnerClass
+        val containingClassId = javaClass.classId ?: return foundInnerClass
+        val candidates = classFinder.collectInheritedInnerClasses(containingClassId)[name.asString()]
+        return candidates?.singleOrNull()?.let { classFinder.findClass(JavaClassFinder.Request(it)) }
     }
 
-    private fun resolveSameFileSupertype(supertype: JavaClassifierType): JavaClass? {
+    /**
+     * Resolves a same-file supertype reference to the [JavaClassOverAst] it denotes.
+     *
+     * Only AST-backed same-file classes are produced here: the outermost segment comes from
+     * [sameFileTopLevelClassProvider] and each nested segment from [JavaClass.findInnerClass], both
+     * of which yield [JavaClassOverAst] for same-file classes. The result is narrowed accordingly so
+     * [findInnerClassFromSupertypes] keeps recursing only over AST classes.
+     */
+    private fun resolveSameFileSupertype(supertype: JavaClassifierType): JavaClassOverAst? {
         val segments = supertype.presentableText.splitCanonicalFqName().map { it.substringBefore('<').trim() }
         if (segments.isEmpty() || segments.any { it.isEmpty() }) return null
-        var resolved = sameFileTopLevelClassProvider(Name.identifier(segments.first())) ?: return null
+        var resolved = sameFileTopLevelClassProvider(Name.identifier(segments.first())) as? JavaClassOverAst ?: return null
         for (i in 1 until segments.size) {
-            resolved = resolved.findInnerClass(Name.identifier(segments[i])) ?: return null
+            resolved = resolved.findInnerClass(Name.identifier(segments[i])) as? JavaClassOverAst ?: return null
         }
         return resolved
     }

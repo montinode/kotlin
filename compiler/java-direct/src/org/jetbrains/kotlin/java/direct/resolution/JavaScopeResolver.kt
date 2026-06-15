@@ -68,7 +68,7 @@ internal fun findClassInCurrentScope(name: Name): JavaClass? {
     // Required for cross-file Java-source supertypes; see KDoc above.
     // The resolver is read from [JavaFileContext] (per-file, scope-invariant);
     // the scope data holds no reference to it.
-    scope.containingClass?.let { cls ->
+    (scope.containingClass as? JavaClassOverAst)?.let { cls ->
         inheritedMemberResolver.findInnerClassFromSupertypes(name, cls, mutableSetOf())?.let { return it }
     }
     // 4. Inner classes of each outer class up the containing chain.

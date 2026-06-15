@@ -12,7 +12,6 @@ import org.jetbrains.kotlin.java.direct.model.JavaClassOverAst
 import org.jetbrains.kotlin.java.direct.resolution.JavaInheritedMemberResolver
 import org.jetbrains.kotlin.load.java.structure.JavaClass
 import org.jetbrains.kotlin.load.java.structure.JavaClassifierType
-import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 import org.junit.jupiter.api.Test
 
@@ -47,17 +46,16 @@ class JavaParsingTypeResolutionTest : JavaParsingTestBase() {
         val parsed = parseSource(source)
         val tree = parsed.tree
         val context = parsed.context
-        val topLevelClasses: Map<String, JavaClass> = tree.getChildren(parsed.root)
+        val topLevelClasses: Map<String, JavaClassOverAst> = tree.getChildren(parsed.root)
             .filter { tree.getType(it).toString() == "CLASS" }
             .associate { node ->
                 val cls = JavaClassOverAst(node, tree, context)
-                cls.name.asString() to (cls as JavaClass)
+                cls.name.asString() to cls
             }
 
         val derived = topLevelClasses.getValue("Derived")
 
         val resolver = JavaInheritedMemberResolver(
-            packageFqName = FqName.ROOT,
             classFinder = null,
             sameFileTopLevelClassProvider = { name -> topLevelClasses[name.asString()] },
         )
