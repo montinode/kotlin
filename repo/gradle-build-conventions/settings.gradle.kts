@@ -5,8 +5,12 @@ pluginManagement {
         maven(url = "https://redirector.kotlinlang.org/maven/kotlin-dependencies")
         mavenCentral { setUrl("https://cache-redirector.jetbrains.com/maven-central") }
         google { setUrl("https://cache-redirector.jetbrains.com/dl.google.com/dl/android/maven2") }
+        maven(url = "https://redirector.kotlinlang.org/maven/dev") {
+            content {
+                includeGroupByRegex("org.jetbrains.kotlin.*")
+            }
+        }
         gradlePluginPortal()
-        maven("https://redirector.kotlinlang.org/maven/dev")
     }
 }
 
