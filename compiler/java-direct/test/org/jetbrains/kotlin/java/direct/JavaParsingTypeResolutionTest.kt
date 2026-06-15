@@ -9,8 +9,10 @@ package org.jetbrains.kotlin.java.direct
 
 import com.intellij.java.syntax.element.JavaSyntaxTokenType
 import org.jetbrains.kotlin.java.direct.model.JavaClassOverAst
+import org.jetbrains.kotlin.java.direct.resolution.JavaInheritedMemberResolver
 import org.jetbrains.kotlin.load.java.structure.JavaClass
 import org.jetbrains.kotlin.load.java.structure.JavaClassifierType
+import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 import org.junit.jupiter.api.Test
 
@@ -29,6 +31,45 @@ class JavaParsingTypeResolutionTest : JavaParsingTestBase() {
         assert(supertypeNames.contains("B"))
         assert(supertypeNames.contains("C"))
         assert(supertypeNames.contains("D"))
+    }
+
+    @Test
+    fun testInheritedInnerClassFromNestedGenericSupertype() {
+        val source = """
+            class Outer<T> {
+                class Inner {
+                    class Target {}
+                }
+            }
+            class Derived extends Outer<String>.Inner {}
+        """.trimIndent()
+
+        val parsed = parseSource(source)
+        val tree = parsed.tree
+        val context = parsed.context
+        val topLevelClasses: Map<String, JavaClass> = tree.getChildren(parsed.root)
+            .filter { tree.getType(it).toString() == "CLASS" }
+            .associate { node ->
+                val cls = JavaClassOverAst(node, tree, context)
+                cls.name.asString() to (cls as JavaClass)
+            }
+
+        val derived = topLevelClasses.getValue("Derived")
+
+        val resolver = JavaInheritedMemberResolver(
+            packageFqName = FqName.ROOT,
+            classFinder = null,
+            sameFileTopLevelClassProvider = { name -> topLevelClasses[name.asString()] },
+        )
+
+        val found = resolver.findInnerClassFromSupertypes(Name.identifier("Target"), derived, mutableSetOf())
+        assert(found != null) {
+            "Expected to resolve inherited inner class 'Target' through nested generic supertype " +
+                    "Outer<String>.Inner, but resolution returned null"
+        }
+        assert(found?.name?.asString() == "Target") {
+            "Expected resolved inner class 'Target', got '${found?.name?.asString()}'"
+        }
     }
 
     @Test

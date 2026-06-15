@@ -9,6 +9,7 @@ import org.jetbrains.kotlin.java.direct.model.JavaClassOverAst
 import org.jetbrains.kotlin.load.java.JavaClassFinder
 import org.jetbrains.kotlin.load.java.structure.JavaClass
 import org.jetbrains.kotlin.load.java.structure.JavaClassifierType
+import org.jetbrains.kotlin.load.java.structure.impl.splitCanonicalFqName
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
@@ -58,12 +59,7 @@ internal class JavaInheritedMemberResolver(
         // Same-file supertypes — local resolution by simple name. Cross-file supertypes are
         // handled by the classFinder fallback below.
         for (supertype in javaClass.supertypes) {
-            val supertypeRef = supertype.presentableText.let { text ->
-                val withoutGenerics = text.substringBefore('<').trim()
-                withoutGenerics.substringBefore('.').trim()
-            }
-            if (supertypeRef.isEmpty()) continue
-            val supertypeClass = sameFileTopLevelClassProvider(Name.identifier(supertypeRef)) ?: continue
+            val supertypeClass = resolveSameFileSupertype(supertype) ?: continue
             (supertypeClass.findInnerClass(name) ?: findInnerClassFromSupertypes(name, supertypeClass, visited))?.let {
                 if (foundInnerClass == null) foundInnerClass = it else return null
             }
@@ -80,6 +76,16 @@ internal class JavaInheritedMemberResolver(
         }
 
         return foundInnerClass
+    }
+
+    private fun resolveSameFileSupertype(supertype: JavaClassifierType): JavaClass? {
+        val segments = supertype.presentableText.splitCanonicalFqName().map { it.substringBefore('<').trim() }
+        if (segments.isEmpty() || segments.any { it.isEmpty() }) return null
+        var resolved = sameFileTopLevelClassProvider(Name.identifier(segments.first())) ?: return null
+        for (i in 1 until segments.size) {
+            resolved = resolved.findInnerClass(Name.identifier(segments[i])) ?: return null
+        }
+        return resolved
     }
 
     /**
