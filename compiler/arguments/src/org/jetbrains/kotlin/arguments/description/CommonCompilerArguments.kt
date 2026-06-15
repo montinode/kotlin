@@ -125,7 +125,7 @@ val actualCommonCompilerArguments by compilerArgumentsLevel(CompilerArgumentsLev
         argumentType = StringListType.defaultEmpty
 
         lifecycle(
-            introducedVersion = KotlinReleaseVersion.v2_6_0,
+            introducedVersion = KotlinReleaseVersion.v2_4_20,
         )
     }
 
