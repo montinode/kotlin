@@ -149,6 +149,12 @@ class JavaClassOverAst(
             // Non-static inner classes get outer type params as OWN (high priority, can't be shadowed
             // by inner class names) via memberResolutionContext.
             // Static nested types get them as INHERITED (low priority, shadowable by inner class names).
+            // (Per JLS 6.5.5/8.1.3 the outer class's type parameter `E` is NOT in scope inside the
+            // static nested types, but PSI has the same behavior (`JavaClassifierTypeImpl.computeResolveResult`)
+            // and making it JLS-strict breaks `InnerClassInGeneric.kt` test.
+            // Moreover, false negative is currently possible due to this behavior. Added as
+            // `staticNestedTypeParamShadowsImportedClass.kt` test, which reports incorrect `UNRESOLVED_REFERENCE`
+            // both on PSI and on java-direct.
             val contextForInner = if (innerIsEffectivelyStatic)
                 resolutionContext.withContainingClass(this).withInheritedTypeParameters(typeParameters)
             else
