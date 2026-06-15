@@ -1,7 +1,7 @@
 plugins {
     kotlin("jvm")
     id("project-tests-convention")
-    id("test-inputs-check")
+    id("test-inputs-check-v2")
     id("java-test-fixtures")
 }
 
@@ -30,7 +30,7 @@ projectTests {
 
     testTask(
         jUnitMode = JUnitMode.JUnit5,
-        defineJDKEnvVariables = listOf(JdkMajorVersion.JDK_1_8, JdkMajorVersion.JDK_11_0)
+        defineJDKEnvVariables = listOf(JdkMajorVersion.JDK_1_8, JdkMajorVersion.JDK_11_0, JdkMajorVersion.JDK_17_0)
     ) {
         val klibProvider = objects.newInstance<SystemPropertyClasspathProvider>().apply {
             property.set("kotlin.stdlib.jvm.ir.klib")
