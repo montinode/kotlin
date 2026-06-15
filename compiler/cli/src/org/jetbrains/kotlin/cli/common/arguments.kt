@@ -6,7 +6,6 @@
 package org.jetbrains.kotlin.cli.common
 
 import com.intellij.ide.highlighter.JavaFileType
-import org.jetbrains.kotlin.arguments.dsl.base.getKotlinReleaseVersion
 import org.jetbrains.kotlin.cli.CliDiagnostics
 import org.jetbrains.kotlin.cli.CliDiagnostics.COMPILER_ARGUMENTS_ERROR
 import org.jetbrains.kotlin.cli.CliDiagnostics.COMPILER_ARGUMENTS_WARNING
@@ -147,20 +146,20 @@ fun CompilerConfiguration.setupLanguageVersionSettings(arguments: CommonCompiler
 private fun CompilerConfiguration.checkDeprecatedArguments(arguments: CommonCompilerArguments) {
     for (explicitArgument in arguments.explicitArguments.keys) {
         val deprecatedAnnotation = explicitArgument.deprecatedAnnotation ?: continue
-
         val deprecatedVersion = explicitArgument.argument.deprecatedVersion
-        val isAlreadyDeprecated = getKotlinReleaseVersion(deprecatedVersion).toKotlinVersion() <= KotlinVersion.CURRENT
-        val message = buildString {
-            append("The argument '").append(explicitArgument.argument.value).append("' is ")
-            append(if (isAlreadyDeprecated) "deprecated" else "is going to be deprecated in $deprecatedVersion")
-            append('.')
-            if (deprecatedAnnotation.message.isNotEmpty()) {
-                append(' ')
-                append(deprecatedAnnotation.message)
-            }
-        }
 
-        report(DEPRECATED_CLI_ARG, message)
+        if (parseKotlinVersion(deprecatedVersion) <= KotlinVersion.CURRENT) {
+            val message = buildString {
+                append("The argument '").append(explicitArgument.argument.value).append("' is deprecated since Kotlin $deprecatedVersion. ")
+                append("It will be removed in one of the future releases.")
+                if (deprecatedAnnotation.message.isNotEmpty()) {
+                    append(' ')
+                    append(deprecatedAnnotation.message)
+                }
+            }
+
+            report(DEPRECATED_CLI_ARG, message)
+        }
     }
 }
 
