@@ -137,7 +137,7 @@ sealed class CommonJsAndWasmCompilerArguments : CommonKlibBasedCompilerArguments
     @all:Deprecated("Use '-nopack' instead to determine if a packed klib file will be produced. Setting this argument to something other than `null` overrides the value from '-nopack'.")
     @Argument(
         value = "-Xir-produce-klib-dir",
-        description = "Generate an unpacked klib into the directory specified by '-ir-output-dir'.",
+        description = "Generate an unpacked klib into the parent directory of the output JS file.",
         deprecatedVersion = "2.4.20",
     )
     var irProduceKlibDir: Boolean? = null

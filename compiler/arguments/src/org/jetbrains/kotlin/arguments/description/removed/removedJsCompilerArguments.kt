@@ -7,6 +7,7 @@ package org.jetbrains.kotlin.arguments.description.removed
 
 import org.jetbrains.kotlin.arguments.description.CompilerArgumentsLevelNames
 import org.jetbrains.kotlin.arguments.dsl.base.KotlinReleaseVersion
+import org.jetbrains.kotlin.arguments.dsl.base.ReleaseDependent
 import org.jetbrains.kotlin.arguments.dsl.base.asReleaseDependent
 import org.jetbrains.kotlin.arguments.dsl.base.compilerArgumentsLevel
 import org.jetbrains.kotlin.arguments.dsl.defaultFalse
@@ -17,9 +18,12 @@ import org.jetbrains.kotlin.arguments.dsl.types.StringType
 val removedJsArguments by compilerArgumentsLevel(CompilerArgumentsLevelNames.jsArguments) {
     compilerArgument {
         name = "Xtyped-arrays"
-        description = "This option does nothing and is left for compatibility with the legacy backend.".asReleaseDependent()
+        description = ReleaseDependent(
+            "This option does nothing and is left for compatibility with the legacy backend.",
+            KotlinReleaseVersion.v2_1_0..KotlinReleaseVersion.v2_4_0 to """This option does nothing and is left for compatibility with the legacy backend.
+It is deprecated and will be removed in a future release."""
+        )
         valueType = BooleanType.defaultFalse
-        deprecatedMessage = "It will be removed in a future release."
 
         lifecycle(
             introducedVersion = KotlinReleaseVersion.v1_1_3,

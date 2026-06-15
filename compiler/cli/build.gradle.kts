@@ -37,7 +37,6 @@ dependencies {
     implementation(project(":kotlin-build-common"))
     implementation(project(":js:js.config"))
     implementation(project(":native:native.config"))
-    implementation(project(":compiler:arguments"))
     implementation(project(":wasm:wasm.config"))
     implementation(project(":wasm:wasm.frontend"))
 

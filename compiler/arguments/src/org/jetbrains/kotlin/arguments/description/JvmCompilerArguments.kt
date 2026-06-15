@@ -522,7 +522,6 @@ The default value is 'enable'.""".asReleaseDependent()
 
     compilerArgument {
         name = "Xjvm-default"
-        // Preserve the strictly same description message that includes redundant deprecation info for consistency with older compiler versions.
         description = """This option is deprecated. Migrate to -jvm-default as follows:
 -Xjvm-default=disable            -> -jvm-default=disable
 -Xjvm-default=all-compatibility  -> -jvm-default=enable

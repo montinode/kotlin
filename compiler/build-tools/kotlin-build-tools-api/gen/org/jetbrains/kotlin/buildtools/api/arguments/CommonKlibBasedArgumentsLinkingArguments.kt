@@ -60,7 +60,7 @@ public interface CommonKlibBasedArgumentsLinkingArguments : CommonKlibBasedArgum
 
   public companion object {
     /**
-     * This option is deprecated and will be deleted in future versions.
+     * Enables partial linkage mode.
      *
      * WARNING: this option is EXPERIMENTAL and it may be changed in the future without notice or may be removed entirely.
      *

@@ -777,7 +777,7 @@ This library must be one of the ones passed with '-library'.""",
             field = value
         }
 
-    @all:Deprecated("This argument will be removed in one of the future releases.")
+    @all:Deprecated("")
     @Argument(
         value = "-library-version",
         shortName = "-lv",

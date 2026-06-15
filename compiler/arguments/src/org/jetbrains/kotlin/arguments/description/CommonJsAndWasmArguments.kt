@@ -98,7 +98,7 @@ val actualCommonJsAndWasmArguments by compilerArgumentsLevel(CompilerArgumentsLe
 
     compilerArgument {
         name = "Xir-produce-klib-file"
-        description = "Generate a packed klib into the directory specified by '-ir-output-dir'.".asReleaseDependent()
+        description = ReleaseDependent("Generate a packed klib into the directory specified by '-ir-output-dir'.")
         valueType = BooleanType(
             isNullable = ReleaseDependent(
                 true,
@@ -165,7 +165,9 @@ val actualCommonJsAndWasmArguments by compilerArgumentsLevel(CompilerArgumentsLe
 
     compilerArgument {
         name = "Xir-produce-klib-dir"
-        description = "Generate an unpacked klib into the directory specified by '-ir-output-dir'.".asReleaseDependent()
+        description = ReleaseDependent(
+            "Generate an unpacked klib into the parent directory of the output JS file."
+        )
         valueType = BooleanType(
             isNullable = ReleaseDependent(
                 true,

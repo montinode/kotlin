@@ -70,11 +70,15 @@ Note: The prefixes are applied in the same order as they are passed in this CLI 
     compilerArgument {
         name = "Xpartial-linkage"
         compilerName = "partialLinkageMode"
-        // Preserve the common part of the description message that includes redundant deprecation info for consistency with older compiler versions.
         description = ReleaseDependent(
-            current = "This option is deprecated and will be deleted in future versions.",
+            current = "Enables partial linkage mode.",
             valueInVersions = mapOf(
-                KotlinReleaseVersion.v2_0_20..KotlinReleaseVersion.v2_3_20 to "Use partial linkage mode."
+                KotlinReleaseVersion.v2_0_20..KotlinReleaseVersion.v2_3_20 to "Use partial linkage mode.",
+                KotlinReleaseVersion.v2_4_0..KotlinReleaseVersion.v2_4_0 to """
+                    This option is deprecated and will be deleted in future versions.
+                    The partial linkage engine is always turned on.
+                    If you would like to adjust the compile-time log level for partial linkage, use -Xpartial-linkage-loglevel.
+                """.trimIndent(),
             )
         )
 
@@ -83,7 +87,7 @@ Note: The prefixes are applied in the same order as they are passed in this CLI 
         valueDescription = "{enable|disable}".asReleaseDependent()
         argumentType = PartialLinkageModeType()
 
-        deprecatedMessage = "The partial linkage engine is always turned on and the option will be deleted in a future version. " +
+        deprecatedMessage = "The partial linkage engine is always turned on. " +
                 "If you want to adjust the compile-time log level for partial linkage, use -Xpartial-linkage-loglevel."
 
         lifecycle(

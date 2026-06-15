@@ -20,12 +20,11 @@ import com.intellij.openapi.util.SystemInfo;
 import kotlin.KotlinVersion;
 import kotlin.text.StringsKt;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.kotlin.arguments.dsl.base.KotlinReleaseVersion;
 import org.jetbrains.kotlin.cli.common.arguments.*;
 
 import java.util.stream.Stream;
 
-import static org.jetbrains.kotlin.arguments.dsl.base.KotlinReleaseVersionKt.getKotlinReleaseVersion;
+import static org.jetbrains.kotlin.cli.common.UtilsKt.parseKotlinVersion;
 import static org.jetbrains.kotlin.cli.common.arguments.ParseCommandLineArgumentsKt.getArgumentsInfo;
 
 public class Usage {
@@ -109,9 +108,13 @@ public class Usage {
             sb.append(PADDING_STRING);
             sb.append("The option is ");
             // The value is generated automatically based on KotlinReleaseVersion entries, thus it's expected to be always valid.
-            KotlinReleaseVersion argDeprecatedVersion = getKotlinReleaseVersion(argument.deprecatedVersion());
-            sb.append(argDeprecatedVersion.toKotlinVersion().compareTo(KotlinVersion.CURRENT) <= 0 ? "deprecated since " : "going to be deprecated in ");
-            sb.append(argDeprecatedVersion.getReleaseName()).append('.');
+            KotlinVersion argDeprecatedVersion = parseKotlinVersion(argument.deprecatedVersion());
+            boolean isAlreadyDeprecated = argDeprecatedVersion.compareTo(KotlinVersion.CURRENT) <= 0;
+            sb.append(isAlreadyDeprecated ? "deprecated since " : "will be deprecated in ");
+            sb.append("Kotlin ").append(argDeprecatedVersion).append('.');
+            if (isAlreadyDeprecated) {
+                sb.append(" It will be removed in one of the future releases.");
+            }
             String message = deprecatedAnnotation.message();
             if (!message.isEmpty()) {
                 sb.append(' ').append(message.replace("\n", "\n" + PADDING_STRING));

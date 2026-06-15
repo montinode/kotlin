@@ -74,7 +74,7 @@ public interface CommonJsAndWasmCompilerKlibArguments : CommonJsAndWasmArguments
         CommonJsAndWasmCompilerKlibArgument("X_IR_PRODUCE_KLIB_FILE", KotlinReleaseVersion(1, 3, 70))
 
     /**
-     * Generate an unpacked klib into the directory specified by '-ir-output-dir'.
+     * Generate an unpacked klib into the parent directory of the output JS file.
      *
      * WARNING: this option is EXPERIMENTAL and it may be changed in the future without notice or may be removed entirely.
      *

@@ -116,10 +116,13 @@ val actualNativeArguments by compilerArgumentsLevel(CompilerArgumentsLevelNames.
     compilerArgument {
         name = "library-version"
         shortName = "lv"
-        description = "The library version.".asReleaseDependent()
+        description = ReleaseDependent(
+            "The library version.",
+            KotlinReleaseVersion.v2_0_20..KotlinReleaseVersion.v2_4_0 to
+                    "The library version.\nNote: This option is deprecated and will be removed in one of the future releases."
+        )
         valueType = StringType.defaultNull
         valueDescription = "<version>".asReleaseDependent()
-        deprecatedMessage = "This argument will be removed in one of the future releases."
 
         lifecycle(
             introducedVersion = KotlinReleaseVersion.v1_5_20,
@@ -211,7 +214,11 @@ val actualNativeArguments by compilerArgumentsLevel(CompilerArgumentsLevelNames.
     compilerArgument {
         name = "no-endorsed-libs"
         compilerName = "noendorsedlibs"
-        description = "Don't link endorsed libraries from the dist automatically.".asReleaseDependent()
+        description = ReleaseDependent(
+            "Don't link endorsed libraries from the dist automatically.",
+            KotlinReleaseVersion.v1_9_20..KotlinReleaseVersion.v2_4_0 to
+                    "Don't link endorsed libraries from the dist automatically. This option has been deprecated, as the dist no longer has any endorsed libraries."
+        )
         valueType = BooleanType.defaultFalse
         deprecatedMessage = "The dist no longer has any endorsed libraries."
 
@@ -522,7 +529,11 @@ Currently this option is disabled by default on other platforms.""".asReleaseDep
     compilerArgument {
         name = "Xg0"
         compilerName = "lightDebugDeprecated"
-        description = "Add light debug information.".asReleaseDependent()
+        description = ReleaseDependent(
+            "Add light debug information.",
+            KotlinReleaseVersion.v1_5_20..KotlinReleaseVersion.v2_4_0 to
+                    "Add light debug information. This option has been deprecated. Please use '-Xadd-light-debug=enable' instead."
+        )
         valueType = BooleanType.defaultFalse
         deprecatedMessage = "Use '-Xadd-light-debug=enable' instead."
 
