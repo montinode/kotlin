@@ -214,6 +214,7 @@ class AnalysisApiSurfaceTest : AbstractAnalysisApiExecutionTest("testData/surfac
                 "implField",
                 "implMethod",
                 "privateImplMethod",
+                "baseProperty",
             )
 
             val actualScopeDeclarationNames = implClassSymbol.declaredMemberScope

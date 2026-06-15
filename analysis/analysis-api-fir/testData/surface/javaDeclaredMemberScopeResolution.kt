@@ -1,6 +1,6 @@
 // FILE: main.kt
 open class Base {
-    val baseProperty: String = "base"
+    open val baseProperty: String = "base"
     fun baseFunction(): String = privateBaseFunction()
 
     private fun privateBaseFunction(): String = "foo"
@@ -12,6 +12,11 @@ public class Impl extends Base {
 
     public int implMethod() {
         return implField;
+    }
+
+    @Override
+    public String getBaseProperty() {
+        return "impl";
     }
 
     private String privateImplMethod() {

@@ -4,7 +4,7 @@ FILE: [ResolvedTo(IMPORTS)] main.kt
             LAZY_super<R|kotlin/Any|>
         }
 
-        public final [ResolvedTo(STATUS)] val baseProperty: R|kotlin/String| = LAZY_EXPRESSION
+        public open [ResolvedTo(STATUS)] val baseProperty: R|kotlin/String| = LAZY_EXPRESSION
             public [ResolvedTo(STATUS)] [ContainingClassKey=Base] get(): R|kotlin/String|
 
         public final [ResolvedTo(STATUS)] fun baseFunction(): R|kotlin/String| { LAZY_BLOCK }
