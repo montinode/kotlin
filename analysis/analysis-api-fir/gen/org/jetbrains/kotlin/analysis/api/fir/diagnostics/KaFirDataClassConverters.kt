@@ -255,6 +255,7 @@ internal val KT_DIAGNOSTIC_CONVERTER: KaDiagnosticConverter = KaDiagnosticConver
     addConversions178()
     addConversions179()
     addConversions180()
+    addConversions181()
     addConversions182()
     addConversions183()
     addConversions184()
@@ -1543,6 +1544,12 @@ private fun KaDiagnosticConverterBuilder.addConversions31() {
     add(FirErrors.NEW_INFERENCE_ERROR) { firDiagnostic ->
         NewInferenceErrorImpl(
             firDiagnostic.a,
+            firDiagnostic as KtPsiDiagnostic,
+            token,
+        )
+    }
+    add(FirJsErrors.DATA_CLASS_COPY_JS_EXPORTABILITY_WILL_BE_CHANGED.warningFactory) { firDiagnostic ->
+        DataClassCopyJsExportabilityWillBeChangedWarningImpl(
             firDiagnostic as KtPsiDiagnostic,
             token,
         )
@@ -6593,6 +6600,13 @@ private fun KaDiagnosticConverterBuilder.addConversions144() {
             token,
         )
     }
+    add(FirJsErrors.NON_EXPORTABLE_TYPE_IN_SYNTHETIC_COPY_FUNCTION) { firDiagnostic ->
+        NonExportableTypeInSyntheticCopyFunctionImpl(
+            firSymbolBuilder.typeBuilder.buildKtType(firDiagnostic.a),
+            firDiagnostic as KtPsiDiagnostic,
+            token,
+        )
+    }
 }
 
 private fun KaDiagnosticConverterBuilder.addConversions145() {
@@ -8023,6 +8037,15 @@ private fun KaDiagnosticConverterBuilder.addConversions180() {
     }
     add(FirJvmErrors.NON_DATA_VALUE_CLASS_JVM_RECORD) { firDiagnostic ->
         NonDataValueClassJvmRecordImpl(
+            firDiagnostic as KtPsiDiagnostic,
+            token,
+        )
+    }
+}
+
+private fun KaDiagnosticConverterBuilder.addConversions181() {
+    add(FirJsErrors.DATA_CLASS_COPY_JS_EXPORTABILITY_WILL_BE_CHANGED.errorFactory) { firDiagnostic ->
+        DataClassCopyJsExportabilityWillBeChangedErrorImpl(
             firDiagnostic as KtPsiDiagnostic,
             token,
         )

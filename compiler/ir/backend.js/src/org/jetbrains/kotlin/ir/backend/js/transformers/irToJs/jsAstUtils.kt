@@ -765,7 +765,6 @@ private val debugFriendlyOrigins: Set<IrDeclarationOrigin> = hashSetOf(
     AbstractSuspendFunctionsLowering.DECLARATION_ORIGIN_COROUTINE_IMPL_INVOKE,
     ENUM_ENTRIES_INITIALIZER_ORIGIN,
     SecondaryConstructorLowering.SECONDARY_CONSTRUCTOR_INIT_ORIGIN,
-    JsLoweredDeclarationOrigin.JS_SHADOWED_EXPORT
 )
 
 val IrDeclaration.isInlinedCode: Boolean

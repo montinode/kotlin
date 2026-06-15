@@ -15,6 +15,7 @@ import org.jetbrains.kotlin.fir.analysis.diagnostics.FirDiagnosticRenderers.SYMB
 import org.jetbrains.kotlin.fir.analysis.diagnostics.js.FirJsErrors.CALL_FROM_UMD_MUST_BE_JS_MODULE_AND_JS_NON_MODULE
 import org.jetbrains.kotlin.fir.analysis.diagnostics.js.FirJsErrors.CALL_TO_JS_MODULE_WITHOUT_MODULE_SYSTEM
 import org.jetbrains.kotlin.fir.analysis.diagnostics.js.FirJsErrors.CALL_TO_JS_NON_MODULE_WITH_MODULE_SYSTEM
+import org.jetbrains.kotlin.fir.analysis.diagnostics.js.FirJsErrors.DATA_CLASS_COPY_JS_EXPORTABILITY_WILL_BE_CHANGED
 import org.jetbrains.kotlin.fir.analysis.diagnostics.js.FirJsErrors.DELEGATION_BY_DYNAMIC
 import org.jetbrains.kotlin.fir.analysis.diagnostics.js.FirJsErrors.ENUM_CLASS_IN_EXTERNAL_DECLARATION_WARNING
 import org.jetbrains.kotlin.fir.analysis.diagnostics.js.FirJsErrors.EXPOSED_NOT_EXPORTED_SUPER_INTERFACE
@@ -58,6 +59,7 @@ import org.jetbrains.kotlin.fir.analysis.diagnostics.js.FirJsErrors.NATIVE_INDEX
 import org.jetbrains.kotlin.fir.analysis.diagnostics.js.FirJsErrors.NATIVE_SETTER_WRONG_RETURN_TYPE
 import org.jetbrains.kotlin.fir.analysis.diagnostics.js.FirJsErrors.NON_CONSUMABLE_EXPORTED_IDENTIFIER
 import org.jetbrains.kotlin.fir.analysis.diagnostics.js.FirJsErrors.NON_EXPORTABLE_TYPE
+import org.jetbrains.kotlin.fir.analysis.diagnostics.js.FirJsErrors.NON_EXPORTABLE_TYPE_IN_SYNTHETIC_COPY_FUNCTION
 import org.jetbrains.kotlin.fir.analysis.diagnostics.js.FirJsErrors.NOT_EXPORTED_OR_EXTERNAL_ACTUAL_DECLARATION_WHILE_EXPECT_IS_EXPORTED
 import org.jetbrains.kotlin.fir.analysis.diagnostics.js.FirJsErrors.OVERRIDING_EXTERNAL_FUN_WITH_OPTIONAL_PARAMS
 import org.jetbrains.kotlin.fir.analysis.diagnostics.js.FirJsErrors.OVERRIDING_EXTERNAL_FUN_WITH_OPTIONAL_PARAMS_WITH_FAKE
@@ -243,6 +245,38 @@ object FirJsErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
         map.put(
             JS_NO_RUNTIME_ACTUAL_ANNOTATIONS_NOT_MATCH_EXPECT,
             "@JsNoRuntime annotations from expect must either be present with on actual as well, or the actual interface must be external.",
+        )
+
+        map.put(
+            DATA_CLASS_COPY_JS_EXPORTABILITY_WILL_BE_CHANGED,
+            """
+                Non-public primary constructor is exposed via the generated 'copy()' method of the 'data' class.
+
+                The generated 'copy()' will inherit the @JsExport.Ignore in future releases by default.
+
+                To suppress the warning now, do one of the following:
+                - Annotate the data class with the '@ConsistentCopyVisibility' annotation, then `copy` will inherit the @JsExport.Ignore, so it will be not exported to JavaScript/TypeScript.
+                - Use the '-Xconsistent-data-class-copy-visibility' compiler flag, which act like you annotated all the exported data-classes with '@ConsistentCopyVisibility' annotation, so the copy function will not be exported to JavaScript/TypeScript.
+                - Annotate the data class with the '@ExposedCopyVisibility' annotation, then `copy` will not inherit the @JsExport.Ignore, so it will be exported to JavaScript/TypeScript.
+
+                To learn more, see the documentation of the '@ConsistentCopyVisibility' and '@ExposedCopyVisibility' annotations.
+                
+                
+            """.trimIndent() // Two empty lines at the end to append "This will become an error in" message
+        )
+
+        map.put(
+            NON_EXPORTABLE_TYPE_IN_SYNTHETIC_COPY_FUNCTION,
+            """
+                The parameter uses non-exportable type ''{0}'' from the exposed 'copy()' method of the 'data' class.
+                
+                To suppress the warning:
+                - Ensure that the exported data class doesn't have '@ExposedCopyVisibility' annotation
+                - If the primary constructor is public, annotate it with the '@JsExport.Ignore' annotation, so it will not be exported to JavaScript/TypeScript.
+                
+                
+            """.trimIndent(), // Two empty lines at the end to append "This will become an error in" message
+            FirDiagnosticRenderers.RENDER_TYPE,
         )
     }
 }

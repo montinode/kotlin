@@ -1,14 +1,33 @@
 /*
- * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
 package org.jetbrains.kotlin.fir.analysis.checkers
 
+import org.jetbrains.kotlin.builtins.StandardNames
 import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.descriptors.EffectiveVisibility
+import org.jetbrains.kotlin.descriptors.Visibilities
 import org.jetbrains.kotlin.fir.SessionHolder
+import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
+import org.jetbrains.kotlin.fir.declarations.FirDeclarationOrigin
+import org.jetbrains.kotlin.fir.declarations.FirFile
+import org.jetbrains.kotlin.fir.declarations.FirFunction
+import org.jetbrains.kotlin.fir.declarations.FirMemberDeclaration
+import org.jetbrains.kotlin.fir.declarations.hasAnnotation
+import org.jetbrains.kotlin.fir.declarations.utils.nameOrSpecialName
+import org.jetbrains.kotlin.fir.declarations.utils.visibility
+import org.jetbrains.kotlin.fir.getPrimaryConstructorSymbol
+import org.jetbrains.kotlin.fir.isDisabled
+import org.jetbrains.kotlin.fir.resolve.getContainingClassSymbol
+import org.jetbrains.kotlin.fir.resolve.providers.firProvider
+import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
+import org.jetbrains.kotlin.fir.symbols.SymbolInternals
+import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirClassLikeSymbol
 import org.jetbrains.kotlin.fir.types.typeContext
+import org.jetbrains.kotlin.name.StandardClassIds
 
 enum class PermissivenessForExposedVisibility {
     LESS,
@@ -48,3 +67,61 @@ fun EffectiveVisibility.relationForExposedVisibility(other: EffectiveVisibility)
         EffectiveVisibility.Permissiveness.UNKNOWN -> PermissivenessForExposedVisibility.UNKNOWN
     }
 }
+
+@OptIn(SymbolInternals::class)
+context(context: CheckerContext)
+fun FirBasedSymbol<*>.isDeclarationExportedToJs(): Boolean {
+    val declaration = fir
+    val session = context.session
+
+    if (declaration is FirMemberDeclaration) {
+        val visibility = declaration.visibility
+        if (visibility != Visibilities.Public && visibility != Visibilities.Protected) {
+            return false
+        }
+
+        // We don't export any data class generated member except `copy` method
+        if (
+            declaration.origin == FirDeclarationOrigin.Synthetic.DataClassMember &&
+            declaration.nameOrSpecialName != StandardNames.DATA_CLASS_COPY
+        ) {
+            return false
+        }
+    }
+
+    if (hasAnnotationOrInsideAnnotatedClass(StandardClassIds.Annotations.jsExportIgnore, session)) {
+        return false
+    }
+
+    if (
+        hasAnnotationOrInsideAnnotatedClass(StandardClassIds.Annotations.jsExport, session) ||
+        hasAnnotationOrInsideAnnotatedClass(StandardClassIds.Annotations.jsExportDefault, session) ||
+        getAnnotationBooleanParameter(StandardClassIds.Annotations.jsImplicitExport, session) == true ||
+        getContainingFile()?.symbol?.hasAnnotation(StandardClassIds.Annotations.jsExport, session) == true
+    ) {
+        /**
+         * The rules for exporting data class copy functions are inheriting rules for consistent `copy` visibility,
+         * described in KT-11914. The migration process is exactly the same as for the visibility modifiers (described in details in the same ticket)
+         *
+         * For more context see [shouldExportDataClassCopy] from org.jetbrains.kotlin.ir.backend.js.ir package
+         */
+        return declaration !is FirFunction || !declaration.isCopyMethod() || getContainingClassSymbol().let { dataClass ->
+            val primaryConstructor = dataClass?.getPrimaryConstructorSymbol(session, context.scopeSession) ?: return@let false
+            dataClass.hasAnnotation(StandardClassIds.Annotations.ExposedCopyVisibility, session) ||
+                    primaryConstructor.isDeclarationExportedToJs() ||
+                    (LanguageFeature.DataClassCopyRespectsConstructorVisibility.isDisabled() &&
+                            !dataClass.hasAnnotation(StandardClassIds.Annotations.ConsistentCopyVisibility, session))
+        }
+    }
+
+    return false
+}
+
+fun FirBasedSymbol<*>.getContainingFile(): FirFile? {
+    return when (this) {
+        is FirCallableSymbol<*> -> moduleData.session.firProvider.getFirCallableContainerFile(this)
+        is FirClassLikeSymbol<*> -> moduleData.session.firProvider.getFirClassifierContainerFileIfAny(this)
+        else -> null
+    }
+}
+

@@ -31,6 +31,13 @@ import org.jetbrains.kotlin.utils.addToStdlib.runIf
 import org.jetbrains.kotlin.utils.memoryOptimizedMap
 import org.jetbrains.kotlin.utils.memoryOptimizedPlus
 
+/**
+ * Indicates that there is a created bridge for default arguments setting, so the current lowering should use this bridge
+ * instead of the original function on the call sides
+ */
+val IrFunction.hasDefaultArgumentBridge: Boolean
+    get() = defaultArgumentsDispatchFunction.let { it != null && it != this }
+
 class JsDefaultArgumentStubGenerator(context: JsIrBackendContext) :
     DefaultArgumentStubGenerator<JsIrBackendContext>(
         context = context,
@@ -111,6 +118,8 @@ class JsDefaultArgumentStubGenerator(context: JsIrBackendContext) :
             return listOf(originalFun, defaultFunStub)
         }
 
+        val isOriginalFunctionExported = originalFun.isExported(context)
+
         if (!defaultFunStub.isFakeOverride) {
             with(defaultFunStub) {
                 parameters.forEach {
@@ -120,7 +129,7 @@ class JsDefaultArgumentStubGenerator(context: JsIrBackendContext) :
                     it.defaultValue = null
                 }
 
-                if (originalFun.isExported(context)) {
+                if (isOriginalFunctionExported) {
                     context.additionalExportedDeclarations.add(defaultFunStub)
 
                     if (!originalFun.hasAnnotation(JsAnnotations.jsNameFqn)) {
@@ -141,9 +150,18 @@ class JsDefaultArgumentStubGenerator(context: JsIrBackendContext) :
 
         originalFun.annotations = irrelevantAnnotations
         defaultFunStub.annotations = exportAnnotations
-        originalFun.origin = JsLoweredDeclarationOrigin.JS_SHADOWED_EXPORT
+
+        if (isOriginalFunctionExported) {
+            originalFun.excludeFromExport()
+        }
 
         return listOf(originalFun, defaultFunStub)
+    }
+
+    private fun IrDeclaration.excludeFromExport() {
+        val jsExportIgnoreClass = context.symbols.jsExportIgnoreAnnotationSymbol.owner
+        val jsExportIgnoreCtor = jsExportIgnoreClass.primaryConstructor ?: return
+        annotations = annotations memoryOptimizedPlus JsIrBuilder.buildAnnotation(jsExportIgnoreCtor.symbol)
     }
 
     override fun IrFunction.generateDefaultStubBody(originalDeclaration: IrFunction): IrBody {
