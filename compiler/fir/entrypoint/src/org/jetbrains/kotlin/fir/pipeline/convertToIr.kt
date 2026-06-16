@@ -24,6 +24,7 @@ import org.jetbrains.kotlin.fir.backend.Fir2IrCommonMemberStorage.DataValueClass
 import org.jetbrains.kotlin.fir.backend.generators.Fir2IrDataClassGeneratedMemberBodyGenerator
 import org.jetbrains.kotlin.fir.backend.utils.generatedBuiltinsDeclarationsFileName
 import org.jetbrains.kotlin.fir.declarations.FirFile
+import org.jetbrains.kotlin.fir.descriptors.FirModuleDescriptor
 import org.jetbrains.kotlin.fir.languageVersionSettings
 import org.jetbrains.kotlin.fir.lazy.Fir2IrLazyClass
 import org.jetbrains.kotlin.fir.moduleData
@@ -35,7 +36,6 @@ import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.declarations.impl.IrFactoryImpl
 import org.jetbrains.kotlin.ir.declarations.impl.IrModuleFragmentImpl
 import org.jetbrains.kotlin.ir.declarations.lazy.IrLazyDeclarationBase
-import org.jetbrains.kotlin.ir.evaluation.ConstInliner
 import org.jetbrains.kotlin.ir.evaluation.evaluate
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.overrides.IrFakeOverrideBuilder
@@ -57,6 +57,7 @@ import org.jetbrains.kotlin.ir.visitors.IrTransformer
 import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 import org.jetbrains.kotlin.ir.visitors.acceptVoid
+import org.jetbrains.kotlin.platform.isJs
 import org.jetbrains.kotlin.platform.jvm.isJvm
 import org.jetbrains.kotlin.utils.addToStdlib.applyIf
 import org.jetbrains.kotlin.utils.addToStdlib.runIf
@@ -370,6 +371,8 @@ private class Fir2IrPipeline(
     }
 
     private fun Fir2IrConversionResult.inlineConstants() {
+        val firModuleDescriptor = mainIrFragment.descriptor as? FirModuleDescriptor
+        val targetPlatform = firModuleDescriptor?.platform
         val inlineConstTracker = componentsStorage.configuration.inlineConstTracker
 
         mainIrFragment.files.forEach { irFile ->
@@ -381,7 +384,13 @@ private class Fir2IrPipeline(
                 }
 
                 override fun visitExpression(expression: IrExpression, data: Nothing?): IrExpression {
-                    return evaluate(expression, irFile, inlineConstTracker) ?: super.visitExpression(expression, data)
+                    return evaluate(
+                        expression,
+                        irFile,
+                        irBuiltIns,
+                        inlineConstTracker,
+                        isFloatingPointOptimizationDisabled = targetPlatform.isJs()
+                    ) ?: super.visitExpression(expression, data)
                 }
             }, null)
         }
