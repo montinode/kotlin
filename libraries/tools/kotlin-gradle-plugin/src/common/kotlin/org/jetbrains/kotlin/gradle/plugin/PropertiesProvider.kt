@@ -386,7 +386,7 @@ internal class PropertiesProvider private constructor(private val project: Proje
         get() = this.property(PropertyNames.KOTLIN_NATIVE_PARALLEL_THREADS).orNull?.toInt()
 
     val enableNativeOptCache: Boolean
-        get() = booleanProperty(PropertyNames.KOTLIN_NATIVE_OPT_CACHE) ?: false
+        get() = booleanProperty(PropertyNames.KOTLIN_NATIVE_OPT_CACHE) ?: true
 
     val errorJsGenerateExternals: Boolean?
         get() = booleanProperty("kotlin.js.generate.externals")

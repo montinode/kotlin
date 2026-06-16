@@ -477,7 +477,7 @@ class NativeSecondStageCompilationConfig(
     }
 
     val optCache: Boolean
-        get() = configuration.get(BinaryOptions.optCache) ?: false
+        get() = configuration.get(BinaryOptions.optCache) ?: true
 
     internal val runtimeLinkageStrategy: RuntimeLinkageStrategy by lazy {
         // Intentionally optimize in debug mode only. See `RuntimeLinkageStrategy`.
