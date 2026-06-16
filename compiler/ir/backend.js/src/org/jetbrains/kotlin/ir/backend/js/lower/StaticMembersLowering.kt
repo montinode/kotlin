@@ -42,6 +42,7 @@ class StaticMembersLowering(val context: JsCommonBackendContext) : DeclarationTr
             }
 
             if (isStatic) {
+                // TODO: Remove this hack once KT-86955 is fixed.
                 if (declaration is IrSimpleFunction) {
                     declaration.modality = Modality.FINAL
                 }
