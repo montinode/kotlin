@@ -354,7 +354,7 @@ private fun validateLanguageFeaturesConsistency(argument: KotlinCompilerArgument
             for (additionalAnn in argument.additionalAnnotations) {
                 val ifValueIs = additionalAnn.getIfValueIs() ?: continue
                 if (ifValueIs.isEmpty()) {
-                    error("Argument '${argument.name}' has $typeName type and changes language features. It's expected that 'ifValueIs' isn't empty, but actually it's empty.")
+                    error("Argument '${argument.name}' has $typeName type and changes language features. Non-empty 'ifValueIs' is expected.")
                 }
             }
         }
