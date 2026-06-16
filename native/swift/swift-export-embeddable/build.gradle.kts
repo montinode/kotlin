@@ -114,6 +114,31 @@ val swiftExportEmbeddableJar = runtimeJarWithRelocation {
     // org.jetbrains:annotations is annotation-only; already on the runtime classpath transitively.
     exclude("org/jetbrains/annotations/**")
     exclude("org/intellij/lang/annotations/**")
+
+    // JS backend — not used by Swift Export (analysis only, no JS codegen).
+    exclude("org/jetbrains/kotlin/js/**")
+    exclude("org/jetbrains/kotlin/ir/backend/js/**")
+    exclude("org/jetbrains/kotlin/fir/analysis/diagnostics/js/**")
+    exclude("org/jetbrains/kotlin/fir/analysis/js/**")
+    exclude("org/jetbrains/kotlin/fir/session/FirJsSessionFactory*")
+    exclude("org/jetbrains/kotlin/metadata/js/**")
+    exclude("org/jetbrains/kotlin/platform/js/**")
+    exclude("org/jetbrains/kotlin/serialization/js/**")
+    exclude("org/jetbrains/kotlin/cli/js/**")
+    exclude("org/jetbrains/kotlin/cli/pipeline/web/**")
+    exclude("org/jetbrains/kotlin/incremental/js/**")
+
+    // Wasm backend — not used by Swift Export.
+    exclude("org/jetbrains/kotlin/wasm/**")
+    exclude("org/jetbrains/kotlin/backend/wasm/**")
+    exclude("org/jetbrains/kotlin/ir/backend/js/wasm/**")
+    exclude("org/jetbrains/kotlin/fir/analysis/diagnostics/wasm/**")
+    exclude("org/jetbrains/kotlin/fir/analysis/wasm/**")
+    exclude("org/jetbrains/kotlin/fir/session/FirWasmSessionFactory*")
+    exclude("org/jetbrains/kotlin/fir/session/KlibIcData*")
+    exclude("org/jetbrains/kotlin/platform/wasm/**")
+
+
 }
 registerSwiftExportEmbeddableValidationTasks(swiftExportEmbeddableJar)
 

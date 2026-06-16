@@ -75,5 +75,40 @@
 -dontwarn org.jetbrains.kotlin.scripting.**
 -dontwarn org.jetbrains.kotlin.assignment.plugin.**
 
+# JS and Wasm backend classes are excluded from the fatjar (not used by Swift Export).
+# Shared FIR/platform/CLI classes reference JS/Wasm types in unreachable platform-dispatch
+# branches (session factories, checker registrations, pipeline phases). Suppress those
+# dangling references — they cannot be reached from Swift Export's analysis-only entry points.
+-dontwarn org.jetbrains.kotlin.fir.checkers.CheckersContainersKt
+-dontwarn org.jetbrains.kotlin.fir.analysis.web.common.**
+-dontwarn org.jetbrains.kotlin.fir.session.AbstractFirMetadataSessionFactory
+-dontwarn org.jetbrains.kotlin.fir.session.AbstractFirMetadataSessionFactory$*
+-dontwarn org.jetbrains.kotlin.fir.session.AbstractFirKlibSessionFactory
+-dontwarn org.jetbrains.kotlin.fir.session.KlibIcCacheBasedSymbolProvider
+-dontwarn org.jetbrains.kotlin.platform.CommonPlatforms
+-dontwarn org.jetbrains.kotlin.platform.CommonPlatforms$*
+-dontwarn org.jetbrains.kotlin.platform.js.**
+-dontwarn org.jetbrains.kotlin.platform.wasm.**
+-dontwarn org.jetbrains.kotlin.fir.session.FirJsSessionFactory
+-dontwarn org.jetbrains.kotlin.fir.session.FirJsSessionFactory$*
+-dontwarn org.jetbrains.kotlin.fir.session.FirWasmSessionFactory
+-dontwarn org.jetbrains.kotlin.fir.session.FirWasmSessionFactory$*
+-dontwarn org.jetbrains.kotlin.fir.session.KlibIcData
+-dontwarn org.jetbrains.kotlin.fir.analysis.js.**
+-dontwarn org.jetbrains.kotlin.fir.analysis.diagnostics.js.**
+-dontwarn org.jetbrains.kotlin.fir.analysis.wasm.**
+-dontwarn org.jetbrains.kotlin.js.**
+-dontwarn org.jetbrains.kotlin.wasm.**
+-dontwarn org.jetbrains.kotlin.analysis.low.level.api.fir.diagnostics.platform.LLJsCheckersConfiguration
+-dontwarn org.jetbrains.kotlin.analysis.low.level.api.fir.diagnostics.platform.LLWasmCheckersConfiguration
+-dontwarn org.jetbrains.kotlin.analysis.low.level.api.fir.diagnostics.platform.LLWasmCheckersConfiguration$*
+-dontwarn org.jetbrains.kotlin.analysis.low.level.api.fir.diagnostics.platform.LLPlatformCheckersConfiguration$*
+-dontwarn org.jetbrains.kotlin.analysis.low.level.api.fir.sessions.factory.components.LLJsSessionComponentRegistration
+-dontwarn org.jetbrains.kotlin.analysis.low.level.api.fir.sessions.factory.components.LLWasmSessionComponentRegistration
+-dontwarn org.jetbrains.kotlin.analysis.low.level.api.fir.sessions.factory.components.LLPlatformSessionComponentRegistration$*
+-dontwarn org.jetbrains.kotlin.cli.common.FirSessionConstructionUtilsKt
+-dontwarn org.jetbrains.kotlin.cli.common.FirSessionConstructionUtilsKt$*
+-dontwarn org.jetbrains.kotlin.cli.pipeline.metadata.MetadataConfigurationUpdater
+
 # Keep everything from Swift Export standalone
 -keep public class org.jetbrains.kotlin.swiftexport.standalone.** { public *; }
