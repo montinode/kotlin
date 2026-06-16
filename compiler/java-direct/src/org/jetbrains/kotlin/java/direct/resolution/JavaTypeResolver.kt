@@ -75,9 +75,9 @@ internal fun resolve(name: String): ClassId? {
         // *all* dotted Java type names — fully qualified ones like `java.util.Map` reach
         // `tryResolve` only through the [probeFqnSplits] tail of
         // [resolveQualifiedNameToClassIdFromParts].
-        return resolveQualifiedNameToClassIdFromParts(name.split('.'), cachedTryResolve, checkInheritance = true)
+        return resolveQualifiedNameToClassIdFromParts(name.split('.'), cachedTryResolve, fullResolution = true)
     }
-    return resolveSimpleNameToClassIdImpl(name, { tryResolve(it) }, checkInheritance = true)
+    return resolveSimpleNameToClassIdImpl(name, { tryResolve(it) }, fullResolution = true)
 }
 
 /**
@@ -85,7 +85,7 @@ internal fun resolve(name: String): ClassId? {
  * (nested-class interpretation first, when the outer is a class in scope) and falls back to
  * plain `package.Class` splits via [probeFqnSplits] when no JLS 6.5.2 outer is in scope.
  *
- * [checkInheritance] controls whether inherited-inner-class lookup is enabled (false → the
+ * [fullResolution] controls whether inherited-inner-class lookup is enabled (false → the
  * `WithoutInheritance` flavor used as a reentrance-safe fallback from
  * [resolveInheritedInnerClassToClassId]). Keeping a single implementation prevents the two
  * copies from drifting when one is updated.
@@ -97,7 +97,7 @@ context(c: JavaResolutionContext)
 private fun resolveQualifiedNameToClassIdFromParts(
     parts: List<String>,
     tryResolve: (ClassId) -> Boolean,
-    checkInheritance: Boolean,
+    fullResolution: Boolean,
 ): ClassId? {
     // Try resolving increasing prefixes as outer classes using normal resolution rules.
     // This respects JLS 6.5.2: nested class takes priority when the outer class is in scope.
@@ -106,9 +106,9 @@ private fun resolveQualifiedNameToClassIdFromParts(
         val nestedParts = parts.subList(i, parts.size)
 
         val outerClassId = if (outerParts.size > 1) {
-            resolveQualifiedNameToClassIdFromParts(outerParts, tryResolve, checkInheritance)
+            resolveQualifiedNameToClassIdFromParts(outerParts, tryResolve, fullResolution)
         } else {
-            resolveSimpleNameToClassIdImpl(outerParts[0], tryResolve, checkInheritance = checkInheritance)
+            resolveSimpleNameToClassIdImpl(outerParts[0], tryResolve, fullResolution = fullResolution)
         }
 
         if (outerClassId != null) {
@@ -121,7 +121,7 @@ private fun resolveQualifiedNameToClassIdFromParts(
             // Nested class not directly declared — search supertypes for inherited inner classes.
             // This handles cases like SimpleFunctionDescriptor.CopyBuilder where CopyBuilder is
             // declared in FunctionDescriptor (superinterface) but referenced via SimpleFunctionDescriptor.
-            if (checkInheritance && nestedParts.size == 1) {
+            if (fullResolution && nestedParts.size == 1) {
                 val inherited = findInheritedNestedClass(outerClassId, nestedParts[0])
                 if (inherited != null) return inherited
             }
@@ -138,8 +138,8 @@ private fun resolveQualifiedNameToClassIdFromParts(
     // package qualifiers like `java.util.Map.Entry` are intentionally handed off to
     // [probeFqnSplits] below.
     val finder = c.fileContext.classFinder
-    if (checkInheritance && finder != null && parts.size == 2) {
-        val outerClassId = resolveSimpleNameToClassIdImpl(parts[0], tryResolve, checkInheritance = true)
+    if (fullResolution && finder != null && parts.size == 2) {
+        val outerClassId = resolveSimpleNameToClassIdImpl(parts[0], tryResolve, fullResolution = true)
         if (outerClassId != null) {
             val inheritedInners = finder.collectInheritedInnerClasses(outerClassId)
             val candidates = inheritedInners[parts[1]]
@@ -158,41 +158,29 @@ private fun resolveQualifiedNameToClassIdFromParts(
 /**
  * Unified workhorse for simple-name resolution.
  *
- * Tries the seven resolution steps in JLS 6.4.1 priority order:
- *
- *  1. Member type of the enclosing class — own and inherited inners (JLS 6.4.1).
- *  2. Top-level type declared in the **same file** (JLS 6.4.1).
- *  3a. Single-type imports (`import a.b.C;`, JLS 7.5.1) — always a type, rank 4.
- *  3b. Single-static imports (`import static a.b.C.X;`, JLS 7.5.3) — rank 4. The referent
- *      `X` may be a type, a method, or a field; only the type case contributes here, the
- *      other two drop out cleanly when `tryResolve` returns `false`. The probe uses the
- *      nested-class-aware [resolveAsClassId] split because the imported FqName always
- *      ends with the type's simple name and the prefix is the outer class.
- *  4. Same-package top-level type from another file (JLS 6.4.1).
- *  5. `java.lang.*` (JLS 7.3 — implicitly imported).
- *  6. Type-import-on-demand (`import a.b.*;`, JLS 7.5.2) — rank 6.
- *  7. Static-import-on-demand (`import static a.b.C.*;`, JLS 7.5.4) — rank 7 (strictly
- *     lower than rank 6 per JLS 6.4.1).
- *
- * [checkInheritance] gates the inheritance-aware steps; when `false`, only the simpler
- * reentrance-safe fallback paths are taken — Step 1 is skipped (the local-scope lookup walks
- * the FIR containing chain and inherited-inner BFS, both of which can re-enter resolution),
- * and the explicit/star steps fall back to their non-inheritance flavors for nested-import FQNs.
+ * [fullResolution] selects the resolution flavor. `true` is the full primary path. `false` is the
+ * reentrance-safe flavor used as a fallback from [resolveInheritedInnerClassToClassId] while an
+ * inherited-inner-class walk is already in progress: it skips Step 1 and downgrades the
+ * explicit/star steps to their single-split flavors — exactly the steps that would otherwise
+ * recurse back into the same walk.
+ * Omitting them is both correct and required for termination: the `false` flavor only turns a
+ * supertype reference name into a [ClassId], which the remaining steps resolve directly, and the
+ * dropped behaviors matter only for doubly-nested corner cases already handled by the primary path.
  */
 context(c: JavaResolutionContext)
 private fun resolveSimpleNameToClassIdImpl(
     simpleName: String,
     tryResolve: (ClassId) -> Boolean,
-    checkInheritance: Boolean,
+    fullResolution: Boolean,
 ): ClassId? {
     // JLS 6.4.1: member types of the enclosing class shadow single-type imports.
-    if (checkInheritance) {
+    if (fullResolution) {
         resolveFromLocalScope(simpleName, tryResolve)?.let { return it }
     }
     // JLS 6.4.1: same-file top-level types shadow single-type imports.
     resolveFromSameFile(simpleName, tryResolve)?.let { return it }
     // JLS 7.5.1: single-type imports.
-    resolveFromExplicitImport(simpleName, tryResolve, checkInheritance)?.let { return it }
+    resolveFromExplicitImport(simpleName, tryResolve, fullResolution)?.let { return it }
     // JLS 7.5.3: single-static imports (rank 4, same as 7.5.1; tried after).
     resolveFromStaticSingleImport(simpleName, tryResolve)?.let { return it }
     // JLS 6.4.1: same-package top-level types from *other* files are
@@ -203,7 +191,7 @@ private fun resolveSimpleNameToClassIdImpl(
     // JLS 7.5.2: type-import-on-demand.
     resolveFromTypeStarImports(simpleName, tryResolve)?.let { return it }
     // JLS 7.5.4: static-import-on-demand (strictly lower rank than 7.5.2).
-    return resolveFromStaticStarImports(simpleName, tryResolve, checkInheritance)
+    return resolveFromStaticStarImports(simpleName, tryResolve, fullResolution)
 }
 
 /**
@@ -298,10 +286,10 @@ context(c: JavaResolutionContext)
 private fun resolveFromExplicitImport(
     simpleName: String,
     tryResolve: (ClassId) -> Boolean,
-    checkInheritance: Boolean,
+    fullResolution: Boolean,
 ): ClassId? {
     val imported = c.fileContext.imports.simpleTypeImports[simpleName] ?: return null
-    if (checkInheritance) {
+    if (fullResolution) {
         // Use resolveAsClassId to handle nested class FQNs like "a.x.b.b.b" where
         // ClassId.topLevel would incorrectly split as package="a.x.b.b", class="b".
         return resolveAsClassId(imported, tryResolve)
@@ -410,21 +398,21 @@ private fun resolveFromTypeStarImports(
  *  1. Resolve the outer-class FqName via [resolveAsClassId] (longest-package-first split).
  *  2. Form `outerClassId.createNestedClassId(simpleName)` and probe via [tryResolve].
  *
- * Without [checkInheritance] (reentrance-safe fallback path) only direct nested-class resolution
+ * Without [fullResolution] (reentrance-safe fallback path) only direct nested-class resolution
  * is attempted.
  */
 context(c: JavaResolutionContext)
 private fun resolveFromStaticStarImports(
     simpleName: String,
     tryResolve: (ClassId) -> Boolean,
-    checkInheritance: Boolean,
+    fullResolution: Boolean,
 ): ClassId? {
     var foundClassId: ClassId? = null
     for (outerFqName in c.fileContext.imports.staticStarImports) {
         val outerClassId = resolveAsClassId(outerFqName, tryResolve) ?: continue
         val nestedClassId = outerClassId.createNestedClassId(Name.identifier(simpleName))
         if (tryResolve(nestedClassId)) {
-            if (!checkInheritance) return nestedClassId
+            if (!fullResolution) return nestedClassId
             if (foundClassId != null && foundClassId != nestedClassId) return null // Ambiguous
             foundClassId = nestedClassId
         }
@@ -444,9 +432,9 @@ private fun resolveInheritedInnerClassToClassId(
     simpleName, tryResolve, { directSupertypeClassIds(it) }, c.scopeContext.containingClass,
     resolveWithoutInheritance = { name, resolve ->
         if (name.contains('.')) {
-            resolveQualifiedNameToClassIdFromParts(name.split('.'), resolve, checkInheritance = false)
+            resolveQualifiedNameToClassIdFromParts(name.split('.'), resolve, fullResolution = false)
         } else {
-            resolveSimpleNameToClassIdImpl(name, resolve, checkInheritance = false)
+            resolveSimpleNameToClassIdImpl(name, resolve, fullResolution = false)
         }
     }
 )
