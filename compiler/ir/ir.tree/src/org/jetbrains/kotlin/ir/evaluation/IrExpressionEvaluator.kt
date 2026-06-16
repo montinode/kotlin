@@ -41,16 +41,16 @@ fun evaluate(
     inlineConstTracker: InlineConstTracker?,
     isFloatingPointOptimizationDisabled: Boolean,
 ): IrExpression? {
-    return expression.accept(ConstInliner(irFile, irBuiltIns, inlineConstTracker, isFloatingPointOptimizationDisabled), null)
+    return expression.accept(IrExpressionEvaluator(irFile, irBuiltIns, inlineConstTracker, isFloatingPointOptimizationDisabled), null)
 }
 
-private class ConstInliner(
+private class IrExpressionEvaluator(
     private val irFile: IrFile,
     private val irBuiltIns: IrBuiltIns,
     private val inlineConstTracker: InlineConstTracker?,
     private val isFloatingPointOptimizationDisabled: Boolean,
 ) : IrVisitor<IrExpression?, Nothing?>() {
-    private fun IrExpression.evaluateAsConst(): IrConst? = this.accept(this@ConstInliner, null) as? IrConst
+    private fun IrExpression.evaluateAsConst(): IrConst? = this.accept(this@IrExpressionEvaluator, null) as? IrConst
 
     override fun visitElement(element: IrElement, data: Nothing?): IrExpression? = null
 
