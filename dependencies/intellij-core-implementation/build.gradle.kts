@@ -7,12 +7,16 @@ plugins {
 val intellijVersion = rootProject.extra["versions.intellijSdk"]
 
 dependencies {
+    api("com.jetbrains.intellij.platform:util-base-multiplatform:$intellijVersion") { isTransitive = false }
+    api("com.jetbrains.intellij.platform:util-class-loader:$intellijVersion") { isTransitive = false }
     api("com.jetbrains.intellij.platform:util-multiplatform:$intellijVersion") { isTransitive = false }
     api("com.jetbrains.intellij.platform:util-rt:$intellijVersion") { isTransitive = false }
-    api("com.jetbrains.intellij.platform:util-class-loader:$intellijVersion") { isTransitive = false }
     api("com.jetbrains.intellij.platform:util-xml-dom:$intellijVersion") { isTransitive = false }
     api("com.jetbrains.intellij.java:java-frontback-psi-impl:$intellijVersion") { isTransitive = false }
+    api("com.jetbrains.intellij.java:java-indexing-impl:$intellijVersion") { isTransitive = false }
     api("com.jetbrains.intellij.java:java-psi-impl:$intellijVersion") { isTransitive = false }
+    api("com.jetbrains.intellij.java:java-syntax:$intellijVersion") { isTransitive = false }
+    api("com.jetbrains.intellij.platform:syntax:$intellijVersion") { isTransitive = false }
     runtimeOnly("com.jetbrains.intellij.platform:diagnostic:$intellijVersion") { isTransitive = false }
     runtimeOnly("com.jetbrains.intellij.platform:diagnostic-telemetry:$intellijVersion") { isTransitive = false }
     runtimeOnly("com.jetbrains.intellij.platform:util-progress:$intellijVersion") { isTransitive = false }
