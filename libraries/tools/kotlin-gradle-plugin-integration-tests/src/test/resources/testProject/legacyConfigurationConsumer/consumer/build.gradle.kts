@@ -16,7 +16,7 @@ dependencies {
     val projectPath = path
     rootProject.subprojects {
         if (path != projectPath) {
-            aggregation(project)
+            aggregation(this@dependencies.dependencies.project(path))
         }
     }
 }
