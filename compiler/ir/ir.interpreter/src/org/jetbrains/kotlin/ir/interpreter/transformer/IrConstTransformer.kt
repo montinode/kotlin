@@ -7,11 +7,7 @@ package org.jetbrains.kotlin.ir.interpreter.transformer
 
 import org.jetbrains.kotlin.incremental.components.InlineConstTracker
 import org.jetbrains.kotlin.ir.IrElement
-import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
-import org.jetbrains.kotlin.ir.declarations.IrField
 import org.jetbrains.kotlin.ir.declarations.IrFile
-import org.jetbrains.kotlin.ir.declarations.path
-import org.jetbrains.kotlin.ir.expressions.IrConst
 import org.jetbrains.kotlin.ir.expressions.IrErrorExpression
 import org.jetbrains.kotlin.ir.interpreter.IrInterpreter
 import org.jetbrains.kotlin.ir.interpreter.checker.EvaluationMode
@@ -19,8 +15,6 @@ import org.jetbrains.kotlin.ir.interpreter.checker.IrInterpreterCommonChecker
 import org.jetbrains.kotlin.ir.interpreter.preprocessor.IrInterpreterConstGetterPreprocessor
 import org.jetbrains.kotlin.ir.interpreter.preprocessor.IrInterpreterKCallableNamePreprocessor
 import org.jetbrains.kotlin.ir.interpreter.preprocessor.IrInterpreterPreprocessorData
-import org.jetbrains.kotlin.ir.util.classId
-import org.jetbrains.kotlin.ir.util.parentAsClass
 
 fun IrElement.transformConst(
     irFile: IrFile,
@@ -82,15 +76,4 @@ private fun IrFile.preprocessForConstTransformer(
         preprocessor.preprocess(file, IrInterpreterPreprocessorData(mode, interpreter.irBuiltIns))
     }
     return preprocessedFile
-}
-
-fun InlineConstTracker.reportOnIr(irFile: IrFile, field: IrField, value: IrConst) {
-    if (field.origin != IrDeclarationOrigin.IR_EXTERNAL_JAVA_DECLARATION_STUB) return
-
-    val path = irFile.path
-    val owner = field.parentAsClass.classId?.asString()?.replace(".", "$")?.replace("/", ".") ?: return
-    val name = field.name.asString()
-    val constType = value.kind.asString
-
-    report(path, owner, name, constType)
 }
