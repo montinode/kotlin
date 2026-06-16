@@ -180,16 +180,15 @@ val irCompilerModulesForIDE = arrayOf(
     ":compiler:ir.validation",
 ).also { extra["irCompilerModulesForIDE"] = it }
 
-val analysisApiSurfaceDependencies by extra {
-    listOf(
-        ":core:names",
-        ":core:language.model",
-        ":core:language.targets",
-        ":core:language.targets.jvm",
-        ":core:language.version-settings",
-        ":compiler:psi:psi-api",
-    )
-}
+val analysisApiSurfaceDependencies = arrayOf(
+    ":core:names",
+    ":core:language.model",
+    ":core:language.targets",
+    ":core:language.targets.jvm",
+    ":core:language.version-settings",
+    ":compiler:psi:psi-api",
+).also { extra["analysisApiSurfaceDependencies"] = it}
+
 
 val cliCompilerModules = arrayOf(
     ":compiler:arguments.common",
@@ -237,16 +236,15 @@ extra["compilerModules"] =
     nativeCompilerModules +
     cliCompilerModules
 
-val analysisApiArtifacts by extra {
-    listOf(
-        ":prepare:analysis-api:kotlin-analysis-api",
-        ":prepare:analysis-api:kotlin-analysis-api-surface",
-        ":prepare:analysis-api:kotlin-analysis-api-platform-interface",
-        ":prepare:analysis-api:kotlin-analysis-api-implementation",
-        ":prepare:analysis-api:kotlin-analysis-api-intellij-api-surface-components",
-        ":prepare:analysis-api:kotlin-analysis-api-intellij-implementation-components",
-    )
-}
+val analysisApiArtifacts = listOf(
+    ":prepare:analysis-api:kotlin-analysis-api",
+    ":prepare:analysis-api:kotlin-analysis-api-surface",
+    ":prepare:analysis-api:kotlin-analysis-api-platform-interface",
+    ":prepare:analysis-api:kotlin-analysis-api-implementation",
+    ":prepare:analysis-api:kotlin-analysis-api-intellij-api-surface-components",
+    ":prepare:analysis-api:kotlin-analysis-api-intellij-implementation-components",
+)
+extra["analysisApiArtifacts"] = analysisApiArtifacts
 
 /**
  * An array of projects used in the IntelliJ Kotlin Plugin.
@@ -259,7 +257,7 @@ val projectsDependingOnStableStdlib =
             commonCompilerModules +
             firCompilerModules +
             irCompilerModulesForIDE +
-            analysisApiArtifacts.toTypedArray() +
+            analysisApiArtifacts +
             analysisApiModules +
             cliCompilerModules +
             jvmCompilerModules + // used by K1 plugin

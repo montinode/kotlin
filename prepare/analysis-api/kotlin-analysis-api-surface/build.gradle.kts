@@ -6,7 +6,8 @@ plugins {
     id("analysis-api-artifact")
 }
 
-val analysisApiSurfaceDependencies: List<String> by rootProject.extra
+@Suppress("UNCHECKED_CAST")
+val analysisApiSurfaceDependencies: Array<String> = rootProject.extra["analysisApiSurfaceDependencies"] as Array<String>
 
 val analysisApiSurfaceProjects = listOf(
     ":analysis:analysis-api",
@@ -21,7 +22,7 @@ dependencies {
     api(project(":prepare:analysis-api:kotlin-analysis-api-intellij-api-surface-components"))
 }
 
-val checkForeignClassUsage by tasks.registering(CheckForeignClassUsageTask::class) {
+val checkForeignClassUsage = tasks.register("checkForeignClassUsage", CheckForeignClassUsageTask::class) {
     classes.from(tasks.jar)
     classpath.from(configurations.runtimeClasspath)
     missingClasspathEntriesOutputFile = file("api/analysis-api-surface.classpath-issues")

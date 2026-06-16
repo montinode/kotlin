@@ -1,12 +1,12 @@
-import org.gradle.kotlin.dsl.project
-
 plugins {
     `java-library`
     id("analysis-api-artifact")
 }
 
-val analysisApiSurfaceDependencies: List<String> by rootProject.extra
-val compilerModules: Array<String> by rootProject.extra
+@Suppress("UNCHECKED_CAST")
+val analysisApiSurfaceDependencies: Array<String> = rootProject.extra["analysisApiSurfaceDependencies"] as Array<String>
+@Suppress("UNCHECKED_CAST")
+val compilerModules: Array<String> = rootProject.extra["compilerModules"] as Array<String>
 
 val analysisApiImplementationProjects = listOf(
     ":analysis:analysis-api-impl-base",
