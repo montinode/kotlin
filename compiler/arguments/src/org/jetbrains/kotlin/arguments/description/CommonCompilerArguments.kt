@@ -618,7 +618,8 @@ val actualCommonCompilerArguments by compilerArgumentsLevel(CompilerArgumentsLev
         compilerName = "useFirLT"
         description = "Compile using the LightTree parser with the frontend IR.".asReleaseDependent()
         valueType = BooleanType.defaultTrue
-        deprecatedMessage = "The light tree mode is enabled by default and it will become unchangeable in 2.5+ because the flag will be removed."
+        deprecatedMessage =
+            "The light tree mode is enabled by default, and it will become the only available mode in one of the future releases."
 
         lifecycle(
             introducedVersion = KotlinReleaseVersion.v1_7_0,
