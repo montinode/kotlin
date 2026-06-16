@@ -8,10 +8,14 @@ package org.jetbrains.kotlin.gradle.targets
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaBasePlugin
 import org.gradle.api.tasks.TaskProvider
+import org.gradle.util.GradleVersion
 import org.jetbrains.kotlin.gradle.plugin.*
 
+// TODO: provide fallback if user still wants to use deprecated tasks?
 @Suppress("TYPEALIAS_EXPANSION_DEPRECATION_ERROR")
 internal val ConfigureBuildSideEffect = KotlinTargetSideEffect { target ->
+    // https://docs.gradle.org/9.6.0-rc-2/userguide/upgrading_version_9.html#deprecate_build_needed_build_dependents_tasks
+    if (GradleVersion.current() >= GradleVersion.version("9.6.0-rc-1")) return@KotlinTargetSideEffect
     val project = target.project
 
     val buildNeeded = project.tasks.named(JavaBasePlugin.BUILD_NEEDED_TASK_NAME)
