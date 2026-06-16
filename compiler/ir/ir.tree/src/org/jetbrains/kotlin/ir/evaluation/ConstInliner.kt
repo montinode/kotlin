@@ -19,6 +19,7 @@ import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.ir.visitors.IrVisitor
 import org.jetbrains.kotlin.name.CallableId
+import org.jetbrains.kotlin.name.SpecialNames
 import org.jetbrains.kotlin.resolve.constants.evaluate.CompileTimeType
 import org.jetbrains.kotlin.resolve.constants.evaluate.canEvalOp
 import org.jetbrains.kotlin.resolve.constants.evaluate.evalBinaryOp
@@ -59,6 +60,8 @@ private class ConstInliner(
         val property = expression.correspondingProperty
         val field = property?.backingField
         return when {
+            expression.isInterpretableKCallableNameCall(irBuiltIns) -> inlineCallableName(expression)
+            expression.isEnumName() -> inlineEnumName(expression)
             field != null -> {
                 if (!field.canBeInlined()) return evaluateBuiltinCall(expression)
 
@@ -110,7 +113,7 @@ private class ConstInliner(
     }
 
     private fun evaluateBuiltinCall(expression: IrCall): IrConst? {
-        if (!expression.isCompileTimeBuiltinCall()) return null
+        if (!expression.isCompileTimeBuiltinCall(irBuiltIns)) return null
 
         val resultType = expression.type
         if (isFloatingPointOptimizationDisabled && resultType.isFloatOrDouble()) return null
@@ -157,6 +160,40 @@ private class ConstInliner(
             endOffset = original.endOffset
             wasInlined = true
         }
+    }
+
+    private fun inlineCallableName(expression: IrCall): IrExpression? {
+        val callableReference = expression.dispatchReceiver
+        if (callableReference !is IrCallableReference<*> && callableReference !is IrRichCallableReference<*>) return null
+
+        val boundArgs = when (callableReference) {
+            is IrCallableReference<*> -> callableReference.arguments.filterNotNull()
+            is IrRichCallableReference<*> -> callableReference.boundValues.toList() // make a copy
+            else -> error("Unexpected callable reference type: ${callableReference::class.simpleName}")
+        }
+
+        val owner = when (callableReference) {
+            is IrCallableReference<*> -> callableReference.symbol.owner as? IrDeclarationWithName
+            is IrRichCallableReference<*> -> callableReference.reflectionTargetSymbol?.owner as? IrDeclarationWithName
+            else -> error("Unexpected callable reference type: ${callableReference::class.simpleName}")
+        }
+
+        val constName = owner?.name?.asString()?.toIrConst(irBuiltIns.stringType, expression.startOffset, expression.endOffset)
+            ?: return null
+
+        val boundArgsWithoutThis = boundArgs.filterNot { it is IrGetValue && it.symbol.owner.name == SpecialNames.THIS }
+        if (boundArgsWithoutThis.isEmpty()) return constName
+
+        return IrCompositeImpl(
+            expression.startOffset, expression.endOffset,
+            expression.type, origin = null, statements = boundArgsWithoutThis + listOf(constName)
+        )
+    }
+
+    private fun inlineEnumName(expression: IrCall): IrConst? {
+        val enumValue = expression.dispatchReceiver as? IrGetEnumValue ?: return null
+        val enumEntry = enumValue.symbol.owner
+        return enumEntry.name.asString().toIrConst(irBuiltIns.stringType, expression.startOffset, expression.endOffset)
     }
 
     companion object {
@@ -245,10 +282,11 @@ private class ConstInliner(
             }
         }
 
-        private fun IrCall.isCompileTimeBuiltinCall(): Boolean {
+        private fun IrCall.isCompileTimeBuiltinCall(irBuiltIns: IrBuiltIns): Boolean {
             val owner = this.symbol.owner
 
             if (!owner.fromStdlib()) return false
+            if (this.isEnumName() || this.isInterpretableKCallableNameCall(irBuiltIns)) return true // Evaluated manually
 
             val receiverType = owner.parameters.getOrNull(0)?.type?.toCompileTimeType()
             val firstArgType = owner.parameters.getOrNull(1)?.type?.toCompileTimeType()
@@ -288,6 +326,37 @@ private class ConstInliner(
                     }
                 }
             }
+        }
+
+        private fun IrCall.isInterpretableKCallableNameCall(irBuiltIns: IrBuiltIns): Boolean {
+            val receiver = this.dispatchReceiver
+            if (receiver !is IrCallableReference<*> && receiver !is IrRichCallableReference<*>) {
+                return false
+            }
+
+//            if (receiver is IrRichCallableReference<*> && receiver.reflectionTargetLinkageError != null) {
+//                // There was a partial linkage error of reflectionTargetSymbol -> we don't have accurate information about the callable's name.
+//                return false
+//            }
+
+            val directMember = this.symbol.owner.propertyIfAccessor
+
+            val irClass = directMember.parent as? IrClass ?: return false
+            if (!irClass.isSubclassOf(irBuiltIns.kCallableClass.owner)) return false
+
+            val name = when (directMember) {
+                is IrSimpleFunction -> directMember.name
+                is IrProperty -> directMember.name
+                else -> return false
+            }
+            return name.asString() == "name"
+        }
+
+        private fun IrCall.isEnumName(): Boolean {
+            val owner = this.symbol.owner
+            if (!owner.hasShape(dispatchReceiver = true, regularParameters = 0)) return false
+            val property = owner.correspondingPropertySymbol?.owner ?: return false
+            return this.dispatchReceiver is IrGetEnumValue && property.name.asString() == "name"
         }
     }
 }
