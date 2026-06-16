@@ -15,6 +15,19 @@ publish()
 
 val validateSwiftExportEmbeddable by tasks.registering
 
+// A resolvable configuration representing the full runtime graph of the AA facade artifact.
+val analysisApiRuntimeClasspath = configurations.detachedConfiguration(
+    dependencies.create(project(":prepare:analysis-api:kotlin-analysis-api"))
+).apply {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    attributes {
+        attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.JAVA_RUNTIME))
+        attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.LIBRARY))
+        attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements.JAR))
+    }
+}
+
 dependencies {
     embedded(project(":native:swift:sir")) { isTransitive = false }
     embedded(project(":native:swift:sir-light-classes")) { isTransitive = false }
@@ -24,52 +37,39 @@ dependencies {
     embedded(project(":libraries:tools:analysis-api-based-klib-reader")) { isTransitive = false }
     embedded(project(":native:analysis-api-based-export-common")) { isTransitive = false }
 
-    // FIXME: Stop embedding Analysis API after KT-61404
-    val lowLevelApiFir = ":analysis:low-level-api-fir"
-    val analysisApiFir = ":analysis:analysis-api-fir"
-    embedded(project(":analysis:analysis-api")) { isTransitive = false }
-    embedded(project(analysisApiFir)) { isTransitive = false }
-    embedded(project(":analysis:analysis-api-impl-base")) { isTransitive = false }
-    embedded(project(":analysis:analysis-api-platform-interface")) { isTransitive = false }
-    embedded(project(":analysis:analysis-api-standalone")) { isTransitive = false }
-    embedded(project(":analysis:analysis-api-standalone:analysis-api-fir-standalone-base")) { isTransitive = false }
-    embedded(project(":analysis:analysis-api-standalone:analysis-api-standalone-base")) { isTransitive = false }
-    embedded(project(lowLevelApiFir)) { isTransitive = false }
-    embedded(project(":analysis:symbol-light-classes")) { isTransitive = false }
-    embedded(project(":analysis:analysis-internal-utils")) { isTransitive = false }
+    // Analysis API, embedded via the published artifact structure (KT-61404)
+    embedded(project(":prepare:analysis-api:kotlin-analysis-api-surface")) { isTransitive = false }
+    embedded(project(":prepare:analysis-api:kotlin-analysis-api-platform-interface")) { isTransitive = false }
+    embedded(project(":prepare:analysis-api:kotlin-analysis-api-implementation")) { isTransitive = false }
+    embedded(project(":prepare:analysis-api:kotlin-analysis-api-intellij-api-surface-components")) { isTransitive = false }
+    embedded(project(":prepare:analysis-api:kotlin-analysis-api-intellij-implementation-components")) { isTransitive = false }
+
+    // Analysis API decompiled dependencies — not part of the published kotlin-analysis-api artifacts
     embedded(project(":analysis:decompiled:decompiler-native")) { isTransitive = false }
     embedded(project(":analysis:decompiled:decompiler-to-psi")) { isTransitive = false }
     embedded(project(":analysis:decompiled:light-classes-for-decompiled")) { isTransitive = false }
     embedded(project(":analysis:decompiled:decompiler-to-stubs")) { isTransitive = false }
     embedded(project(":analysis:decompiled:decompiler-to-file-stubs")) { isTransitive = false }
 
-    val projectsToInheritDependenciesFrom = configurations.runtimeClasspath.get().copy()
-    projectsToInheritDependenciesFrom.dependencies.clear()
-    projectsToInheritDependenciesFrom.dependencies.addAll(
-        listOf(
-            dependencies.create(project(lowLevelApiFir)),
-            dependencies.create(project(analysisApiFir)),
-        )
-    )
-    val dependenciesToInherit = mapOf(
-        // analysis-api-fir uses OpenTelemetry
-        "io.opentelemetry" to "opentelemetry-api",
-        // low-level-api-fir uses the caffeine cache
-        "com.github.ben-manes.caffeine" to "caffeine",
-        // These are the dependencies of caffeine. By explicitly specifying them in runtimeClasspath we inherit the versions that are
-        // used at compile-time by low-level-api-fir
-        "org.checkerframework" to "checker-qual",
-        "com.google.errorprone" to "error_prone_annotations",
-    )
-    val validateAllDependenciesWereInheritedCorrectly = inheritAndValidateExternalDependencies(
-        sourceConfiguration = projectsToInheritDependenciesFrom,
-        targetConfiguration = configurations.getByName("runtimeOnly"),
-        dependenciesToInherit = dependenciesToInherit,
-    )
-    validateSwiftExportEmbeddable.configure { dependsOn(validateAllDependenciesWereInheritedCorrectly) }
+    // Take only EXTERNAL modules (skip project components — those AA jars are embedded explicitly),
+    // and skip deps that must stay on the runtime classpath only (not embedded):
+    //  - stdlib: addEmbeddedRuntime forbids embedding it
+    //  - kotlinx-serialization: not in packagesToRelocate; provided as runtimeOnly below
+    //  - org.jetbrains:annotations: annotation-only, duplicates against runtime classpath
+    val inheritedExternalAnalysisApiDeps = analysisApiRuntimeClasspath.incoming.resolutionResult.allComponents
+        .mapNotNull { it.id as? ModuleComponentIdentifier }
+        .map { "${it.group}:${it.module}:${it.version}" }
+        .filterNot { it.startsWith("org.jetbrains.kotlin:kotlin-stdlib") }
+        .filterNot { it.startsWith("org.jetbrains.kotlinx:kotlinx-serialization") }
+        .filterNot { it.startsWith("org.jetbrains:annotations") }
+
+    inheritedExternalAnalysisApiDeps.forEach { gav ->
+        embedded(dependencies.create(gav).apply {
+            (this as? ExternalModuleDependency)?.isTransitive = false
+        })
+    }
 
     runtimeOnly(kotlinStdlib())
-    runtimeOnly(project(":kotlin-compiler-embeddable"))
     runtimeOnly(libs.kotlinx.serialization.core)
 }
 
@@ -107,6 +107,13 @@ sourceSets {
 
 val swiftExportEmbeddableJar = runtimeJarWithRelocation {
     configureEmbeddableCompilerRelocation()
+    // Scripting classes are embedded in kotlin-analysis-api-implementation (via additionalCompilerProjects)
+    // but must not be in the fatjar — they are provided at runtime via kotlin-scripting-compiler-embeddable.
+    exclude("kotlin/script/**")
+    exclude("org/jetbrains/kotlin/scripting/**")
+    // org.jetbrains:annotations is annotation-only; already on the runtime classpath transitively.
+    exclude("org/jetbrains/annotations/**")
+    exclude("org/intellij/lang/annotations/**")
 }
 registerSwiftExportEmbeddableValidationTasks(swiftExportEmbeddableJar)
 

@@ -15,5 +15,65 @@
 -dontwarn org.jetbrains.kotlin.com.intellij.openapi.util.NlsSafe
 -dontwarn org.jetbrains.kotlin.com.intellij.util.concurrency.annotations.RequiresReadLock
 
+# IntelliJ optional deps not present in the standalone classpath
+-dontwarn com.intellij.util.diff.*
+-dontwarn org.jetbrains.kotlin.com.intellij.util.diff.*
+-dontwarn gnu.trove.TObjectHashingStrategy
+-dontwarn org.jaxen.**
+-dontwarn dk.brics.automaton.*
+
+# JDK Flight Recorder — optional telemetry, not available on all JDKs
+-dontwarn jdk.jfr.**
+
+# SSH support in JLine — optional, not used by Swift Export
+-dontwarn org.jetbrains.kotlin.org.apache.sshd.**
+
+# Apache Commons Compress — optional archiving support in IntelliJ
+-dontwarn org.jetbrains.kotlin.org.apache.commons.compress.**
+
+# Optional OpenTelemetry SDK (only the API is required at runtime)
+-dontwarn org.jetbrains.kotlin.io.opentelemetry.sdk.**
+-dontwarn org.jetbrains.kotlin.io.opentelemetry.extension.**
+-dontwarn org.jetbrains.kotlin.com.intellij.platform.diagnostic.telemetry.**
+
+# Annotation-only deps excluded from fatjar
+-dontwarn org.jetbrains.annotations.**
+-dontwarn org.intellij.lang.annotations.**
+
+# kotlinx-serialization-json is provided as runtimeOnly (not embedded)
+-dontwarn kotlinx.serialization.json.**
+
+# javax.jms and javax.crypto — optional in log4j/JLine, not used by Swift Export
+-dontwarn javax.jms.**
+-dontwarn javax.crypto.**
+
+# MethodHandle warnings from low-level JVM intrinsics (lz4, caffeine, etc.)
+-dontwarn java.lang.invoke.MethodHandle
+
+# Misc optional deps referenced in IntelliJ code paths not reachable by Swift Export
+-dontwarn org.mozilla.universalchardet.**
+-dontwarn org.jetbrains.kotlin.tooling.core.**
+-dontwarn com.intellij.psi.util.PsiTreeUtilKt
+-dontwarn org.jetbrains.kotlin.compilerRunner.ArgumentUtils
+-dontwarn org.jetbrains.kotlin.javac.**
+-dontwarn org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement
+-dontwarn org.jetbrains.kotlin.org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement
+-dontwarn org.fusesource.jansi.internal.Kernel32
+-dontwarn org.jetbrains.kotlin.org.jline.terminal.impl.jansi.win.**
+-dontwarn android.annotation.SuppressLint
+
+# Unresolved references in kotlinx-coroutines (debug agent, optional)
+-dontwarn kotlinx.coroutines.debug.DebugProbes
+
+# JDK Flight Recorder methods — jdk.jfr.Event subclasses (LLAbstractPhaseEvent and
+# friends) lose begin/commit/end when jdk.jfr is absent. This dontwarn is scoped to
+# the LL-FIR telemetry util package only; it does not suppress other LL-FIR warnings.
+-dontwarn org.jetbrains.kotlin.analysis.low.level.api.fir.util.LL**
+
+# Scripting plugins are on the runtime classpath (kotlin-scripting-compiler-embeddable),
+# not embedded — the library-extends-program warnings are expected
+-dontwarn org.jetbrains.kotlin.scripting.**
+-dontwarn org.jetbrains.kotlin.assignment.plugin.**
+
 # Keep everything from Swift Export standalone
 -keep public class org.jetbrains.kotlin.swiftexport.standalone.** { public *; }
