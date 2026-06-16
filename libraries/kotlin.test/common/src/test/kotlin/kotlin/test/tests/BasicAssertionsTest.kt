@@ -271,6 +271,7 @@ class BasicAssertionsTest {
 
     @Test
     fun testAssertNotNullLambda() {
+        @Suppress("DEPRECATION")
         assertNotNull("") { assertEquals("", it) }
     }
 
@@ -278,6 +279,7 @@ class BasicAssertionsTest {
     fun testAssertNotNullLambdaFails() {
         checkFailedAssertion {
             val value: String? = null
+            @Suppress("DEPRECATION")
             assertNotNull(value) {
                 it.substring(0, 0)
             }
