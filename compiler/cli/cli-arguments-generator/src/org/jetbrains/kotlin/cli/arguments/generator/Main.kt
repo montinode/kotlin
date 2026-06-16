@@ -303,7 +303,7 @@ private fun validateLifetime(argument: KotlinCompilerArgument) {
             maxVersion = it
         }
 
-        require(maxVersion.toKotlinVersion() <= KotlinVersion.CURRENT) {
+        require(KotlinVersion(maxVersion.major, maxVersion.minor, maxVersion.patch) <= KotlinVersion.CURRENT) {
             "Version ${maxVersion.releaseName} (${KotlinReleaseVersionLifecycle::introducedVersion.name}, ${KotlinReleaseVersionLifecycle::stabilizedVersion.name}) can't be greater than current Kotlin compiler version ${KotlinCompilerVersion.VERSION}. " +
                     "The new CLI argument take place straight away in the current version."
         }
