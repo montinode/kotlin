@@ -98,6 +98,12 @@ internal class JavaInheritedMemberResolver(
      *
      * @param resolveWithoutInheritance resolves a name without checking inherited inner
      *        classes, to avoid infinite recursion back into this method.
+     * @param includeOuterClasses when `true`, the search starts from the supertypes of
+     *        [containingClass] *and* of every enclosing class; when `false`, only the supertypes
+     *        of [containingClass] itself are searched. The per-level (`false`) flavor lets the
+     *        caller interleave declared and inherited member types level by level, preserving the
+     *        JLS 6.4.1 rule that an inner level's inherited member type shadows an outer level's
+     *        declared one.
      */
     fun resolveInheritedInnerClassToClassId(
         simpleName: String,
@@ -105,14 +111,16 @@ internal class JavaInheritedMemberResolver(
         directSupertypeClassIds: (ClassId) -> List<ClassId>,
         containingClass: JavaClass?,
         resolveWithoutInheritance: (String, (ClassId) -> Boolean) -> ClassId?,
+        includeOuterClasses: Boolean = true,
     ): ClassId? {
         containingClass ?: return null
 
-        // Collect direct supertypes from the containing class and its outer classes.
+        // Collect direct supertypes from the containing class (and, when requested, its outer classes).
         val initialSupertypes = mutableListOf<JavaClassifierType>()
         var currentClass: JavaClass? = containingClass
         while (currentClass != null) {
             initialSupertypes.addAll(currentClass.supertypes)
+            if (!includeOuterClasses) break
             currentClass = currentClass.outerClass
         }
         val visited = mutableSetOf<ClassId>()

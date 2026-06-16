@@ -23,7 +23,6 @@ import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.fir.types.ConeTypeProjection
 import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef
 import org.jetbrains.kotlin.java.direct.model.FirBackedJavaClassifierType
-import org.jetbrains.kotlin.java.direct.model.JavaClassOverAst
 import org.jetbrains.kotlin.java.direct.model.firBackedJavaType
 import org.jetbrains.kotlin.load.java.JavaClassFinder
 import org.jetbrains.kotlin.load.java.structure.JavaClass
@@ -32,7 +31,6 @@ import org.jetbrains.kotlin.load.java.structure.classId
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
-import kotlin.collections.iterator
 
 /**
  * Stateless type-reference resolution for Java source files, operating upon the given
@@ -201,13 +199,13 @@ private fun resolveSimpleNameToClassIdImpl(
  * imports of the same simple name within the class body, so this step runs *before*
  * [resolveFromExplicitImport].
  *
- * Two-step shape:
- *
- * 1. **Containing-chain walk via FIR.** Iterate [getContainingClassIds] from innermost to
- *    outermost and probe `containingId.createNestedClassId(name)` via [tryResolve]. Preserves
- *    the innermost-wins priority of JLS 6.3.
- * 2. **Inherited-inner walk via FIR.** Aggregated-map / two-pass BFS in
- *    [resolveInheritedInnerClassToClassId].
+ * Walks the containing class chain from innermost to outermost. At each level it probes the
+ * member type **declared** by that class, then the member types it **inherits** from its
+ * supertypes, before moving outward. Per JLS 6.4.1 a member type declared or inherited at an
+ * inner level shadows one declared or inherited at an enclosing level, so the declared and
+ * inherited lookups must interleave level by level. The inherited lookup mirrors the AST
+ * classifier path in [findClassInCurrentScope] but additionally reaches Kotlin / binary
+ * supertypes through the `ClassId` BFS.
  *
  * Same-file top-level classes are NOT resolved here: they share their `ClassId` with same-package
  * cross-file classes, so [resolveFromSamePackage] picks them up at the next step. The AST fast
@@ -218,41 +216,56 @@ private fun resolveFromLocalScope(
     simpleName: String,
     tryResolve: (ClassId) -> Boolean,
 ): ClassId? {
-    // Walk the containing chain via FIR `tryResolve`. The resulting `ClassId(packageFqName, ...)`
-    // is identical to what the FIR symbol provider would resolve `containingId.createNestedClassId(name)`
-    // to (FIR's `JvmSymbolProvider` -> `JavaClassFinderOverAstImpl` resolves it through the same
-    // AST node when the inner is in source). The walk preserves the innermost-wins priority
-    // ordering required by JLS 6.3.
     val nameId = Name.identifier(simpleName)
-    for (containingId in getContainingClassIds()) {
-        val candidate = containingId.createNestedClassId(nameId)
-        if (tryResolve(candidate)) return candidate
-    }
-
-    // Inherited inner classes from supertypes (cross-file, e.g., Kotlin classes).
-    // Use the aggregated inherited inner classes map (cached per context) for BOTH
-    // ambiguity detection AND as a fast path.
-    val aggregatedInherited = getAggregatedInheritedInnerClasses()
-    if (aggregatedInherited != null) {
-        val allCandidates = aggregatedInherited[simpleName] ?: emptySet()
-        when {
-            allCandidates.size > 1 -> return null // Ambiguously inherited – don't resolve
-            allCandidates.size == 1 -> {
-                val candidateClassId = allCandidates.first()
-                if (tryResolve(candidateClassId)) return candidateClassId
-            }
-            // allCandidates.isEmpty(): fall back to BFS via [directSupertypeClassIds].
-            else -> {
-                val inheritedResult = resolveInheritedInnerClassToClassId(simpleName, tryResolve)
-                if (inheritedResult != null) return inheritedResult
-            }
+    var current: JavaClass? = c.scopeContext.containingClass
+    while (current != null) {
+        val fqName = current.fqName
+        if (fqName != null) {
+            val containingId = fqNameToClassId(fqName)
+            // Declared member type of this class. The resulting `ClassId(packageFqName, ...)` is
+            // identical to what the FIR symbol provider would resolve
+            // `containingId.createNestedClassId(name)` to (FIR's `JvmSymbolProvider` ->
+            // `JavaClassFinderOverAstImpl` resolves it through the same AST node when the inner is
+            // in source).
+            val declared = containingId.createNestedClassId(nameId)
+            if (tryResolve(declared)) return declared
+            // Member types this class inherits from its supertypes (cross-file Java source,
+            // Kotlin, and binary), restricted to this single level so the interleaving holds.
+            resolveInheritedInnerForLevel(simpleName, current, containingId, tryResolve)?.let { return it }
         }
-    } else {
-        // No class finder available — use the full BFS as fallback.
-        val inheritedResult = resolveInheritedInnerClassToClassId(simpleName, tryResolve)
-        if (inheritedResult != null) return inheritedResult
+        current = current.outerClass
     }
     return null
+}
+
+/**
+ * Resolves a member type [simpleName] inherited by a single class [containingClass] (identified by
+ * [containingId]) from its supertypes. Uses the per-class cached map of inherited inner names for
+ * Java-source supertypes (fast path + same-level ambiguity detection) and falls back to the
+ * supertype BFS for the Kotlin / binary supertypes the map does not cover.
+ */
+context(c: JavaResolutionContext)
+private fun resolveInheritedInnerForLevel(
+    simpleName: String,
+    containingClass: JavaClass,
+    containingId: ClassId,
+    tryResolve: (ClassId) -> Boolean,
+): ClassId? {
+    val inherited = getInheritedInnerClassesForClass(containingId)
+    if (inherited != null) {
+        val candidates = inherited[simpleName] ?: emptySet()
+        when {
+            candidates.size > 1 -> return null // Ambiguously inherited at this level – don't resolve.
+            candidates.size == 1 -> {
+                val candidateClassId = candidates.first()
+                if (tryResolve(candidateClassId)) return candidateClassId
+            }
+            // candidates.isEmpty(): fall back to the BFS for Kotlin / binary supertypes.
+        }
+    }
+    return resolveInheritedInnerClassToClassId(
+        simpleName, tryResolve, containingClass, includeOuterClasses = false,
+    )
 }
 
 /**
@@ -421,22 +434,29 @@ private fun resolveFromStaticStarImports(
 }
 
 /**
- * Try to resolve a simple name as an inner class inherited from supertypes. The BFS reads
- * supertypes through the per-origin [directSupertypeClassIds] dispatcher.
+ * Try to resolve a simple name as an inner class inherited from the supertypes of [containingClass].
+ * The BFS reads supertypes through the per-origin [directSupertypeClassIds] dispatcher.
+ *
+ * When [includeOuterClasses] is `false` only [containingClass]'s own supertypes are searched, so
+ * the caller ([resolveFromLocalScope]) can interleave declared and inherited lookups level by level
+ * (JLS 6.4.1).
  */
 context(c: JavaResolutionContext)
 private fun resolveInheritedInnerClassToClassId(
     simpleName: String,
     tryResolve: (ClassId) -> Boolean,
+    containingClass: JavaClass?,
+    includeOuterClasses: Boolean,
 ): ClassId? = c.fileContext.inheritedMemberResolver.resolveInheritedInnerClassToClassId(
-    simpleName, tryResolve, { directSupertypeClassIds(it) }, c.scopeContext.containingClass,
+    simpleName, tryResolve, { directSupertypeClassIds(it) }, containingClass,
     resolveWithoutInheritance = { name, resolve ->
         if (name.contains('.')) {
             resolveQualifiedNameToClassIdFromParts(name.split('.'), resolve, fullResolution = false)
         } else {
             resolveSimpleNameToClassIdImpl(name, resolve, fullResolution = false)
         }
-    }
+    },
+    includeOuterClasses = includeOuterClasses,
 )
 
 /**
@@ -704,35 +724,18 @@ private fun resolveSupertypeNames(enclosing: JavaClass): List<ClassId> =
     }
 
 /**
- * Aggregates inherited inner classes across the containing class's outer chain. For each class in
- * the chain, queries the class finder for transitively inherited inner class names and merges
- * them into a single map. Cached on [JavaScopeContext.inheritedInnerCache] (keyed by the
- * containing class) to avoid re-walking the outer chain on every [resolveFromLocalScope] call.
+ * Transitively inherited inner class names for a single enclosing class [classId], as reported by
+ * the Java-source class finder (maps simpleName -> Set<ClassId>). Cached per class on
+ * [JavaScopeContext.inheritedInnerCache] so the level-by-level walk in [resolveFromLocalScope] does
+ * not re-collect the same class on every simple-name resolution. Returns `null` when no class
+ * finder is available (the caller then falls back to the supertype BFS).
  */
 context(c: JavaResolutionContext)
-private fun getAggregatedInheritedInnerClasses(): Map<String, Set<ClassId>>? {
-    val cache = c.scopeContext.inheritedInnerCache
-    cache.value?.let { return it }
+private fun getInheritedInnerClassesForClass(classId: ClassId): Map<String, Set<ClassId>>? {
     val finder = c.fileContext.classFinder ?: return null
-    // Synchronise so concurrent readers don't both walk the outer chain and call
-    // collectInheritedInnerClasses(...) per hop; the @Volatile fast-path above keeps the
-    // hot read lock-free once the cache is populated.
-    synchronized(cache) {
-        cache.value?.let { return it }
-        val merged = mutableMapOf<String, MutableSet<ClassId>>()
-        var current: JavaClass? = c.scopeContext.containingClass
-        while (current != null) {
-            val fqn = (current as? JavaClassOverAst)?.fqName
-            if (fqn != null) {
-                for ([name, classIds] in finder.collectInheritedInnerClasses(fqNameToClassId(fqn))) {
-                    merged.getOrPut(name) { mutableSetOf() }.addAll(classIds)
-                }
-            }
-            current = current.outerClass
-        }
-        val result = merged.mapValues { it.value.toSet() }
-        cache.value = result
-        return result
+    val cache = c.scopeContext.inheritedInnerCache
+    return cache.byClass.getOrPut(classId) {
+        finder.collectInheritedInnerClasses(classId)
     }
 }
 

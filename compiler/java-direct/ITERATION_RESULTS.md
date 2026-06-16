@@ -36,6 +36,24 @@ This log is read into the agent's context every session, so **entries must stay 
 
 <!-- Add new entries below, newest first. -->
 
+### 2026-06-16 — Inherited inner type shadows an enclosing-declared one (JLS 6.4.1 parity)
+- **Change**: A member type *inherited* by an inner class now shadows one merely *declared* in a
+  lexically-enclosing class, matching PSI on the cross-file/binary/Kotlin path (baseline only did
+  this for same-file supertypes). `findClassInCurrentScope` probes the containing class's
+  supertype-inherited inners *before* the sibling/outer-declared step; `resolveFromLocalScope`
+  replaces the "all-declared-then-one-aggregated-inherited" pass with a per-level interleave
+  (declared then this level's inherited inners), keeping innermost-wins priority for the
+  `resolve()` callers.
+- **Files**: `resolution/JavaScopeResolver.kt`, `resolution/JavaTypeResolver.kt`
+  (+`resolveInheritedInnerForLevel`, per-class `getInheritedInnerClassesForClass`),
+  `resolution/JavaInheritedMemberResolver.kt` (+`includeOuterClasses`),
+  `resolution/JavaScopeContext.kt` (per-class `inheritedInnerCache`); test
+  `testData/.../javaDirect/inheritedInnerShadowsOuterDeclared.kt` (3 cases).
+- **Tests**: java-direct phased 1523/1523 (0 failures) + full `:compiler:java-direct:test` green;
+  new test passes on both `JavaUsingAstPhasedTestGenerated` and `PhasedJvmDiagnosticPsiTestGenerated`.
+- **Result**: green; resolution-only change, no shared FIR touched. Test data shared with PSI; both
+  engines agree on the JLS golden.
+
 ### 2026-06-12 — Implicit `permits` match is now resolution-based + lazy (PSI `isInheritor` parity)
 - **Change**: `JavaClassOverAst.deriveImplicitPermittedTypes` no longer matches subtypes by raw
   `extends`/`implements` text. A candidate is permitted iff one of its *direct* declared supertypes
