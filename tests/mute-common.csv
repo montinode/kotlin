@@ -15,4 +15,3 @@ org.jetbrains.kotlin.swiftexport.standalone.test.SwiftExportCoroutinesExecutionT
 org.jetbrains.kotlin.swiftexport.standalone.test.EmbeddableSwiftExportCoroutinesExecutionTestGenerated.testCoroutines,KT-86780,FLAKY
 org.jetbrains.kotlin.swiftexport.standalone.test.SwiftExportCoroutinesExecutionTestGenerated.testClosures,KT-86780,FLAKY
 org.jetbrains.kotlin.swiftexport.standalone.test.EmbeddableSwiftExportCoroutinesExecutionTestGenerated.testClosures,KT-86780,FLAKY
-org.jetbrains.kotlin.gradle.mpp.JvmClasspathMetadataIncrementalIT.testWithJvmClasspathMetadataEnabled,KT-86703,STABLE

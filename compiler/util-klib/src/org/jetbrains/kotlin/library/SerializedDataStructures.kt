@@ -7,9 +7,37 @@ package org.jetbrains.kotlin.library
 
 class SerializedMetadata(
     val module: ByteArray,
-    val fragments: List<List<ByteArray>>,
-    val fragmentNames: List<String>,
     val metadataVersion: IntArray,
+    val fragmentsByPackage: Map<String, List<SerializedFragment>>,
+) {
+    constructor(
+        module: ByteArray,
+        fragments: List<List<ByteArray>>,
+        fragmentNames: List<String>,
+        metadataVersion: IntArray,
+    ) : this(
+        module,
+        metadataVersion,
+        fragmentNames
+            .mapIndexed { index, name ->
+                name to fragments[index].map { SerializedFragment(it, null) }
+            }.toMap()
+    )
+
+    val fragments: List<List<ByteArray>> = fragmentsByPackage.values
+        .map { fragments -> fragments.map { fragment -> fragment.content } }
+
+    val fragmentNames: List<String> = fragmentsByPackage.keys.toList()
+}
+
+class SerializedFragment(
+    val content: ByteArray,
+
+    /**
+     * The path to the source file this fragment was generated from.
+     * Can be null if the fragment was generated without a corresponding source file (e.g. for generated content).
+     */
+    val sourcePath: String?,
 )
 
 class SerializedDeclaration(val id: Int, val bytes: ByteArray) {

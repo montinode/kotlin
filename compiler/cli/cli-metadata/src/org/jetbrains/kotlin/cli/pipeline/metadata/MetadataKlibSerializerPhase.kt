@@ -19,6 +19,7 @@ import org.jetbrains.kotlin.fir.resolve.providers.firProvider
 import org.jetbrains.kotlin.fir.serialization.FirKLibSerializerExtension
 import org.jetbrains.kotlin.fir.serialization.serializeSingleFirFile
 import org.jetbrains.kotlin.konan.file.File
+import org.jetbrains.kotlin.library.SerializedFragment
 import org.jetbrains.kotlin.library.SerializedMetadata
 import org.jetbrains.kotlin.library.loadSizeInfo
 import org.jetbrains.kotlin.library.metadata.KlibMetadataHeaderFlags
@@ -33,7 +34,7 @@ object MetadataKlibInMemorySerializerPhase : PipelinePhase<MetadataFrontendPipel
     override fun executePhase(input: MetadataFrontendPipelineArtifact): MetadataInMemorySerializationArtifact {
         (val firResult = frontendOutput, val configuration, val _ = sourceFiles) = input
         val metadataVersion = configuration.metadataVersion()
-        val fragments = mutableMapOf<String, MutableList<ByteArray>>()
+        val fragments = mutableMapOf<String, MutableList<SerializedFragment>>()
 
         val analysisResult = firResult.outputs
         for (output in analysisResult) {
@@ -53,7 +54,9 @@ object MetadataKlibInMemorySerializerPhase : PipelinePhase<MetadataFrontendPipel
                     ),
                     languageVersionSettings,
                 )
-                fragments.getOrPut(firFile.packageFqName.asString()) { mutableListOf() }.add(packageFragment.toByteArray())
+                fragments.getOrPut(firFile.packageFqName.asString()) { mutableListOf() }.add(
+                    SerializedFragment(packageFragment.toByteArray(), firFile.sourceFile?.path)
+                )
             }
         }
 
@@ -64,17 +67,13 @@ object MetadataKlibInMemorySerializerPhase : PipelinePhase<MetadataFrontendPipel
             header.flags = KlibMetadataHeaderFlags.PRE_RELEASE
         }
 
-        val fragmentNames = mutableListOf<String>()
-        val fragmentParts = mutableListOf<List<ByteArray>>()
-
-        for ([fqName, fragment] in fragments.entries.sortedBy { it.key }) {
-            fragmentNames += fqName
-            fragmentParts += fragment
+        for ([fqName, _] in fragments.entries.sortedBy { it.key }) {
             header.addPackageFragmentName(fqName)
         }
 
         val module = header.build().toByteArray()
-        val serializedMetadata = SerializedMetadata(module, fragmentParts, fragmentNames, metadataVersion.toArray())
+        val serializedMetadata =
+            SerializedMetadata(module, metadataVersion.toArray(), fragments)
         return MetadataInMemorySerializationArtifact(serializedMetadata, configuration)
     }
 }
