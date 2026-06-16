@@ -19,7 +19,11 @@ internal class TodoAnalysisApiTestExecutionExceptionHandler : TestExecutionExcep
     override fun handleTestExecutionException(context: ExtensionContext, throwable: Throwable) {
         val element = context.element.getOrNull() ?: return
 
+        // Note: the definition for `isCrash` is just a heuristic based on the existing tests.
+        // It intentionally covers only a single assertion exception type to make sure we catch as many unexpected failures as possible.
+        // If necessary, it can be adjusted to handle more non-crash cases.
         val isCrash = throwable !is AssertionFailedError
+
         val annotation = element.getAnnotation(TodoAnalysisApi::class.java)
         if (annotation != null && annotation.expectCrash == isCrash) {
             // This failure is expected. Handle accordingly.
