@@ -30,11 +30,14 @@ import org.jetbrains.kotlin.fir.moduleData
 import org.jetbrains.kotlin.fir.resolve.ScopeSession
 import org.jetbrains.kotlin.ir.IrBuiltIns
 import org.jetbrains.kotlin.ir.IrElement
+import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.declarations.impl.IrFactoryImpl
 import org.jetbrains.kotlin.ir.declarations.impl.IrModuleFragmentImpl
 import org.jetbrains.kotlin.ir.declarations.lazy.IrLazyDeclarationBase
 import org.jetbrains.kotlin.ir.evaluation.ConstInliner
+import org.jetbrains.kotlin.ir.evaluation.evaluate
+import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.overrides.IrFakeOverrideBuilder
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.types.IrTypeSystemContext
@@ -50,6 +53,7 @@ import org.jetbrains.kotlin.ir.validation.checkers.expression.IrCallValueArgumen
 import org.jetbrains.kotlin.ir.validation.checkers.expression.IrCrossFileFieldUsageChecker
 import org.jetbrains.kotlin.ir.validation.checkers.expression.IrValueAccessScopeChecker
 import org.jetbrains.kotlin.ir.validation.checkers.symbol.IrVisibilityChecker
+import org.jetbrains.kotlin.ir.visitors.IrTransformer
 import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 import org.jetbrains.kotlin.ir.visitors.acceptVoid
@@ -369,7 +373,17 @@ private class Fir2IrPipeline(
         val inlineConstTracker = componentsStorage.configuration.inlineConstTracker
 
         mainIrFragment.files.forEach { irFile ->
-            irFile.transform(ConstInliner(irFile, inlineConstTracker), null)
+            irFile.transform(object : IrTransformer<Nothing?>() {
+                override fun visitFunction(declaration: IrFunction, data: Nothing?): IrStatement {
+                    // It is useless to visit default accessor, we probably want to leave code there as it is
+                    if (declaration.origin == IrDeclarationOrigin.DEFAULT_PROPERTY_ACCESSOR) return declaration
+                    return visitDeclaration(declaration, data)
+                }
+
+                override fun visitExpression(expression: IrExpression, data: Nothing?): IrExpression {
+                    return evaluate(expression, irFile, inlineConstTracker) ?: super.visitExpression(expression, data)
+                }
+            }, null)
         }
     }
 
