@@ -67,22 +67,6 @@ abstract class AbstractNativeCInteropExperimentalTest : AbstractNativeCInteropTe
         get() = false
 }
 
-// Checks the generated overloads for parameters eligible for String conversion 
-// (`const char*`, `LPCWSTR`-aliased pointers)
-abstract class AbstractNativeCInteropStringConvertTest : AbstractNativeCInteropTest() {
-    override val fmodules: Boolean
-        get() = false
-
-    override val defFileName: String
-        get() = "dependency.def"
-
-    override val ignoreExperimentalForeignApi: Boolean
-        // We annotate these overloads with ExperimentalForeignApi even with
-        // `-Xdisable-experimental-annotation` for now, hence we test the annotation
-        // is added
-        get() = false
-}
-
 @Tag("cinterop")
 abstract class AbstractNativeCInteropTest : AbstractNativeCInteropBaseTest() {
     abstract val fmodules: Boolean

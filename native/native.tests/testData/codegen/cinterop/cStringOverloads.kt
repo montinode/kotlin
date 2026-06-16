@@ -42,9 +42,7 @@ fun box(): String {
     }
     assertEquals(s, roundTripped)
 
-    memScoped {
-        assertEquals(s.length, cstr_len(s.cstr.ptr))
-    }
+    assertEquals(s.length, cstr_len(s.cstr))
 
     // `null` matches both overloads. `@LowPriorityInOverloadResolution` on the `CValuesRef`
     // variant resolves the ambiguity by choosing the `String?` overload, preserving the
@@ -57,6 +55,8 @@ fun box(): String {
     // on the `CValuesRef` overload, not on the `String?` one.
     val ref = ::cstr_len
     assertEquals(5, ref("hello"))
+    val ref2: (CValuesRef<ByteVar>?) -> Int = ::cstr_len
+    assertEquals(5, ref2("hello".cstr))
 
     return "OK"
 }
