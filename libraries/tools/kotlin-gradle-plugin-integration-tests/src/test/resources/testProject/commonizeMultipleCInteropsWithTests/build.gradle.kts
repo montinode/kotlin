@@ -103,7 +103,7 @@ kotlin {
         }
     }
 
-    if (properties["testSourceSetsDependingOnMain"] == "true") {
+    if (providers.gradleProperty("testSourceSetsDependingOnMain").orNull == "true") {
         logger.quiet("testSourceSetsDependingOnMain is set")
         nativeTest.dependsOn(nativeMain)
         unixTest.dependsOn(unixMain)

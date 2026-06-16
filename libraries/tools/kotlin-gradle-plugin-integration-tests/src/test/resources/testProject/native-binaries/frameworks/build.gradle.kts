@@ -21,7 +21,7 @@ kotlin {
         attributes.attribute(disambiguation1Attribute, "someValue")
         binaries {
             framework("main") {
-                export(project(":exported"))
+                export(dependencies.project(":exported"))
             }
             framework("custom") {
                 linkerOpts = mutableListOf("-L.")
