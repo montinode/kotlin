@@ -16,10 +16,11 @@
 
 package org.jetbrains.kotlin.cli.jvm.index
 
-import com.intellij.lang.java.lexer.JavaLexer
+import com.intellij.java.syntax.JavaSyntaxDefinition
+import com.intellij.java.syntax.element.JavaSyntaxTokenType
+import com.intellij.java.syntax.parser.JavaKeywords
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.pom.java.LanguageLevel
-import com.intellij.psi.PsiKeyword
 import com.intellij.psi.PsiPackage
 import com.intellij.psi.impl.source.tree.ElementType
 import com.intellij.psi.tree.IElementType
@@ -63,15 +64,15 @@ class SingleJavaFileRootsIndex(private val roots: List<JavaRoot>) {
      */
     private class JavaSourceClassIdReader(file: VirtualFile) {
         private val isPackageInfo = (file.nameWithoutExtension == PsiPackage.PACKAGE_INFO_CLASS)
-        private val lexer = JavaLexer(LanguageLevel.HIGHEST).apply {
+        private val lexer = JavaSyntaxDefinition.createLexer(LanguageLevel.HIGHEST).apply {
             start(String(file.contentsToByteArray()))
         }
         private var braceBalance = 0
         private var parenthesisBalance = 0
 
-        private fun at(type: IElementType): Boolean = lexer.tokenType == type
+        private fun at(type: IElementType): Boolean = lexer.getTokenType() == type
 
-        private fun end(): Boolean = lexer.tokenType == null
+        private fun end(): Boolean = lexer.getTokenType() == null
 
         private fun advance() {
             when {
@@ -83,15 +84,15 @@ class SingleJavaFileRootsIndex(private val roots: List<JavaRoot>) {
             lexer.advance()
         }
 
-        private fun tokenText(): String = lexer.tokenText
+        private fun tokenText(): String = lexer.getTokenText()
 
         private fun atClass(): Boolean =
-            braceBalance == 0 && parenthesisBalance == 0 && (lexer.tokenType in CLASS_KEYWORDS || atRecord())
+            braceBalance == 0 && parenthesisBalance == 0 && (lexer.getTokenType() in CLASS_KEYWORDS || atRecord())
 
         private fun atRecord(): Boolean {
             // Note that the soft keyword "record" is lexed as IDENTIFIER instead of RECORD_KEYWORD.
             // This is kind of a sloppy way to parse a soft keyword, but we only do it at the top level, where it seems to work fine.
-            return at(ElementType.IDENTIFIER) && tokenText() == PsiKeyword.RECORD
+            return at(ElementType.IDENTIFIER) && tokenText() == JavaKeywords.RECORD
         }
 
         fun readClassIds(): List<ClassId> {
@@ -133,7 +134,7 @@ class SingleJavaFileRootsIndex(private val roots: List<JavaRoot>) {
         }
 
         companion object {
-            private val CLASS_KEYWORDS = setOf(ElementType.CLASS_KEYWORD, ElementType.INTERFACE_KEYWORD, ElementType.ENUM_KEYWORD)
+            private val CLASS_KEYWORDS = setOf(JavaSyntaxTokenType.CLASS_KEYWORD, JavaSyntaxTokenType.INTERFACE_KEYWORD, JavaSyntaxTokenType.ENUM_KEYWORD)
         }
     }
 
