@@ -510,7 +510,8 @@ internal fun <Context, Output, P> PhaseEngine<Context>.runAndMeasurePhase(phase:
  */
 private fun PhaseEngine<NativeGenerationState>.runCodegen(module: IrModuleFragment, irBuiltIns: IrBuiltIns) {
     val optimize = context.shouldOptimize()
-    val runGlobalOptimizations = optimize && !context.config.cachedLibraries.hasStaticCaches// && !context.config.produce.isCache
+    // It's ok to run global optimizations on a cache as long as it doesn't have other dependencies (stdlib)
+    val runGlobalOptimizations = optimize && !context.config.cachedLibraries.hasStaticCaches
     val enablePreCodegenInliner = context.config.preCodegenInlineThreshold != 0U && runGlobalOptimizations
     module.files.forEach {
         // Have to run after link dependencies phase, because fields from dependencies can be changed during lowerings.
