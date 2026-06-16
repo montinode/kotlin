@@ -97,7 +97,6 @@ private fun createAutoboxingTransformerPhase(context: JsCommonBackendContext): A
 
 private fun createObjectDeclarationLoweringPhase(context: JsCommonBackendContext): ObjectDeclarationLowering {
     return ObjectDeclarationLowering(context,
-                                     initializeParentCompanions = true,
                                      initializeObjectEnumParent = false,
     )
 }
