@@ -104,11 +104,7 @@ private fun createObjectDeclarationLoweringPhase(context: JsCommonBackendContext
 
 //@PhasePrerequisites(FunctionInlining::class) // This prerequisite is hard to represent for common lowering
 private fun createConstEvaluationPhase(context: CommonBackendContext): ConstEvaluationLowering {
-    val configuration = IrInterpreterConfiguration(
-        printOnlyExceptionMessage = true,
-        platform = WasmPlatforms.unspecifiedWasmPlatform,
-    )
-    return ConstEvaluationLowering(context, configuration = configuration)
+    return ConstEvaluationLowering(context, platform = WasmPlatforms.unspecifiedWasmPlatform)
 }
 
 fun wasmLoweringsOfTheFirstPhase(

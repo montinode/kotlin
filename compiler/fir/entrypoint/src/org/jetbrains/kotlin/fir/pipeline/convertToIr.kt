@@ -273,8 +273,6 @@ private class Fir2IrPipeline(
 
         checkUnboundSymbols()
 
-        inlineConstants()
-
         val actualizationResult = irActualizer?.runChecksAndFinalize(expectActualMap)
 
         fakeOverrideResolver.cacheFakeOverridesOfAllClasses(mainIrFragment)
@@ -368,33 +366,6 @@ private class Fir2IrPipeline(
             fir2IrConfiguration.diagnosticReporter,
             IrVerificationMode.ERROR,
         )
-    }
-
-    private fun Fir2IrConversionResult.inlineConstants() {
-        val firModuleDescriptor = mainIrFragment.descriptor as? FirModuleDescriptor
-        val targetPlatform = firModuleDescriptor?.platform
-        val inlineConstTracker = componentsStorage.configuration.inlineConstTracker
-
-        mainIrFragment.files.forEach { irFile ->
-            irFile.transform(object : IrTransformer<Nothing?>() {
-                override fun visitFunction(declaration: IrFunction, data: Nothing?): IrStatement {
-                    // It is useless to visit default accessor, we probably want to leave code there as it is
-                    if (declaration.origin == IrDeclarationOrigin.DEFAULT_PROPERTY_ACCESSOR) return declaration
-                    return visitDeclaration(declaration, data)
-                }
-
-                override fun visitExpression(expression: IrExpression, data: Nothing?): IrExpression {
-                    val superResult = super.visitExpression(expression, data)
-                    return evaluate(
-                        superResult,
-                        irFile,
-                        irBuiltIns,
-                        inlineConstTracker,
-                        isFloatingPointOptimizationDisabled = targetPlatform.isJs()
-                    ) ?: superResult
-                }
-            }, null)
-        }
     }
 
     // ------------------------------------------------------ f/o building helpers ------------------------------------------------------
