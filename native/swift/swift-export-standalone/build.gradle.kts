@@ -18,10 +18,7 @@ dependencies {
     implementation(project(":native:swift:sir-providers"))
     implementation(project(":native:swift:sir-light-classes"))
     implementation(project(":native:swift:sir-printer"))
-
-    implementation(project(":analysis:analysis-api"))
-    implementation(project(":analysis:analysis-api-standalone"))
-
+    implementation(project(":prepare:analysis-api:kotlin-analysis-api"))
     implementation(project(":libraries:tools:analysis-api-based-klib-reader"))
     compileOnly(project(":kotlin-util-klib-metadata"))
 }
