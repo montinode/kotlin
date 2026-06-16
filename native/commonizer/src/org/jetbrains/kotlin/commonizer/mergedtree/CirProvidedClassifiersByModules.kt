@@ -110,14 +110,11 @@ private fun readExportedForwardDeclarations(
 }
 
 private fun readModule(metadata: SerializedMetadata, consumer: (CirEntityId, CirProvided.Classifier) -> Unit) {
-    for (i in metadata.fragmentNames.indices) {
-        val packageFqName = metadata.fragmentNames[i]
-        val packageFragments = metadata.fragments[i]
-
+    for ([packageFqName, packageFragments] in metadata.fragmentsByPackage) {
         val classProtosToRead = ClassProtosToRead()
 
         for (j in packageFragments.indices) {
-            val packageFragmentProto = parsePackageFragment(packageFragments[j])
+            val packageFragmentProto = parsePackageFragment(packageFragments[j].content)
 
             val classProtos: List<ProtoBuf.Class> = packageFragmentProto.class_List
             val typeAliasProtos: List<ProtoBuf.TypeAlias> = packageFragmentProto.`package`?.typeAliasList.orEmpty()

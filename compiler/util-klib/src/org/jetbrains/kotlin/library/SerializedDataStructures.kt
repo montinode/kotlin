@@ -23,11 +23,6 @@ class SerializedMetadata(
                 name to fragments[index].map { SerializedFragment(it, null) }
             }.toMap()
     )
-
-    val fragments: List<List<ByteArray>> = fragmentsByPackage.values
-        .map { fragments -> fragments.map { fragment -> fragment.content } }
-
-    val fragmentNames: List<String> = fragmentsByPackage.keys.toList()
 }
 
 class SerializedFragment(
