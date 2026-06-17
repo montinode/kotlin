@@ -95,13 +95,13 @@ object PluginStructureProvider {
     ) {
         val pluginDescriptor = getOrCalculatePluginDescriptor(PluginDesignation(pluginRelativePath, componentManager)) ?: return
         for (extensionPointDescriptor in pluginDescriptor.containerDescriptor().extensionPoints) {
-            val extensionPointName = extensionPointDescriptor.name ?: continue
+            val extensionPointName = extensionPointDescriptor.qualifiedName ?: continue
             if (extensionPointName in forbiddenExtensionPointNames) continue
 
             CoreApplicationEnvironment.registerExtensionPoint(
                 componentManager.extensionArea,
                 extensionPointName,
-                componentManager.loadClass<Any>(extensionPointName, fakePluginDescriptor),
+                componentManager.loadClass<Any>(extensionPointDescriptor.`interface` ?: continue, fakePluginDescriptor),
             )
         }
     }
