@@ -104,7 +104,7 @@ class LanguageVersionSettingsBuilder {
 
         val analysisFlags = listOfNotNull(
             analysisFlag(AnalysisFlags.optIn, directives[LanguageSettingsDirectives.OPT_IN].takeIf { it.isNotEmpty() }),
-            analysisFlag(AnalysisFlags.escapingFunctionsAllowlist, directives[LanguageSettingsDirectives.UNSTABLE_CAPTURE].takeIf { it.isNotEmpty() }),
+            analysisFlag(AnalysisFlags.escapingFunctionsList, directives[LanguageSettingsDirectives.UNSTABLE_CAPTURE].takeIf { it.isNotEmpty() }),
             analysisFlag(AnalysisFlags.warningLevels, directives[LanguageSettingsDirectives.SUPPRESS_WARNINGS].associateWith { WarningLevel.Disabled }),
             analysisFlag(AnalysisFlags.ignoreDataFlowInAssert, trueOrNull(LanguageSettingsDirectives.IGNORE_DATA_FLOW_IN_ASSERT in directives)),
             analysisFlag(AnalysisFlags.explicitApiMode, directives.singleOrZeroValue(LanguageSettingsDirectives.EXPLICIT_API_MODE)),

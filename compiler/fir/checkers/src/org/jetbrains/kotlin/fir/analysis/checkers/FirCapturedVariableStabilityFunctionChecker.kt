@@ -73,17 +73,17 @@ object FirCapturedVariableStabilityFunctionChecker : AbstractFirPropertyInitiali
             }
         })
 
-        val userEntries = context.session.languageVersionSettings.getFlag(AnalysisFlags.escapingFunctionsAllowlist)
+        val userEntries = context.session.languageVersionSettings.getFlag(AnalysisFlags.escapingFunctionsList)
         val added = userEntries.filter { it.startsWith("+") }.map { it.drop(1) }
         val removed = userEntries.filter { it.startsWith("-") }.map { it.drop(1) }
-        val effectiveAllowlist = defaultAllowlist + added - removed.toSet()
+        val effectiveEscapingFunctionsList = defaultEscapingFunctionsList + added - removed.toSet()
 
         data.graph.traverse(
             CapturedVariableVisitor(
                 visibleWrites,
                 propertyDeclarationGraphs,
                 lambdaOwnerCalls,
-                effectiveAllowlist,
+                effectiveEscapingFunctionsList,
                 reporter,
                 context,
             )
@@ -95,7 +95,7 @@ private class CapturedVariableVisitor(
     private val visibleWrites: Map<CFGNode<*>, PathAwareControlFlowInfo<PropertyAccessType, VariableWriteData>>,
     private val propertyDeclarationGraphs: Map<FirPropertySymbol, ControlFlowGraph>,
     private val lambdaOwnerCalls: Map<FirAnonymousFunctionSymbol, FirFunctionCall>,
-    private val allowlist: Set<String>,
+    private val escapingFunctionsList: Set<String>,
     private val reporter: DiagnosticReporter,
     private val context: CheckerContext,
 ) : ControlFlowGraphVisitorVoid() {
@@ -103,7 +103,7 @@ private class CapturedVariableVisitor(
 
     private fun isAllowlistedDispatcher(call: FirFunctionCall): Boolean {
         val symbol = call.calleeReference.toResolvedFunctionSymbol() ?: return false
-        return symbol.callableId.asSingleFqName().asString() in allowlist
+        return symbol.callableId.asSingleFqName().asString() in escapingFunctionsList
     }
 
     override fun visitNode(node: CFGNode<*>) {}
@@ -158,7 +158,7 @@ private class CapturedVariableVisitor(
     }
 }
 
-private val defaultAllowlist: Set<String> = setOf(
+private val defaultEscapingFunctionsList: Set<String> = setOf(
     "kotlinx.coroutines.launch",
     "kotlinx.coroutines.async",
     "kotlinx.coroutines.Job.invokeOnCompletion",
