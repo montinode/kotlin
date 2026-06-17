@@ -9,6 +9,7 @@ import com.intellij.openapi.project.Project
 import org.jetbrains.kotlin.config.LanguageVersionSettings
 import org.jetbrains.kotlin.descriptors.ModuleDescriptor
 import org.jetbrains.kotlin.descriptors.packageFragments
+import org.jetbrains.kotlin.library.SerializedFragment
 import org.jetbrains.kotlin.library.SerializedMetadata
 import org.jetbrains.kotlin.library.metadata.KlibMetadataProtoBuf
 import org.jetbrains.kotlin.metadata.ProtoBuf
@@ -57,7 +58,7 @@ class KlibMetadataMonolithicSerializer(
 
     fun serializeModule(moduleDescriptor: ModuleDescriptor): SerializedMetadata {
 
-        val fragments = mutableListOf<List<ByteArray>>()
+        val fragments = mutableListOf<List<SerializedFragment>>()
         val fragmentNames = mutableListOf<String>()
         val emptyPackages = mutableListOf<String>()
 
@@ -71,7 +72,7 @@ class KlibMetadataMonolithicSerializer(
             if (packageProtos.all { it.getExtension(KlibMetadataProtoBuf.isEmpty) }) {
                 emptyPackages.add(packageFqNameStr)
             }
-            fragments.add(packageProtos.map { it.toByteArray() })
+            fragments.add(packageProtos.map { SerializedFragment(it.toByteArray()) })
             fragmentNames.add(packageFqNameStr)
 
         }
