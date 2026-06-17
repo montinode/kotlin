@@ -67,9 +67,7 @@ private fun llvmArStaticLibraryCommands(
             +"--rsp-quoting=windows"
             +operation
             +executable
-            val responseFile = tempFiles.create("ar-members", ".rsp")
-            responseFile.writeLines(members.map { "\"$it\"" })
-            +"@${responseFile.absolutePath}"
+            +responseFileArg(tempFiles, "ar-members", members)
         } else {
             +operation
             +executable
@@ -80,6 +78,15 @@ private fun llvmArStaticLibraryCommands(
 
 // Kept safely below the Windows command-line length limit (32767), leaving room for the program path and the rest of the arguments.
 private const val MAX_LINKER_COMMAND_LINE_LENGTH = 30_000
+
+// Writes [paths] (one double-quoted entry per line) into a response file and returns the `@file` argument for it.
+// Both llvm-ar and clang are invoked with `--rsp-quoting=windows`, so this single quoting (backslashes kept literally,
+// spaces grouped by the quotes) is parsed identically by both tools and on every host.
+private fun responseFileArg(tempFiles: TempFiles, responseFilePrefix: String, paths: List<String>): String {
+    val responseFile = tempFiles.create(responseFilePrefix, ".rsp")
+    responseFile.writeLines(paths.map { "\"$it\"" })
+    return "@${responseFile.absolutePath}"
+}
 
 class LinkerArguments(
     val tempFiles: TempFiles,
@@ -514,11 +521,8 @@ class MingwLinker(targetProperties: MingwConfigurables)
         // clang reads itself instead of through CreateProcess. The paths are simply double-quoted and clang is told
         // `--rsp-quoting=windows` (below), so backslashes in Windows paths are kept literally — the same quoting the
         // llvm-ar response file uses. Forward-slash Unix paths from cross-compilation are unaffected.
-        fun List<String>.asLinkerInputs(responseFilePrefix: String): List<String> = if (isEmpty()) this
-        else tempFiles.create(responseFilePrefix, ".rsp").let { responseFile ->
-            responseFile.writeLines(map { "\"$it\"" })
-            listOf("@${responseFile.absolutePath}")
-        }
+        fun List<String>.asLinkerInputs(responseFilePrefix: String): List<String> =
+            if (isEmpty()) this else listOf(responseFileArg(tempFiles, responseFilePrefix, this))
 
         val staticLibrariesArgs = staticLibraries.asLinkerInputs("staticlibs")
         val dynamicLibrariesArgs = dynamicLibraries.asLinkerInputs("dynamiclibs")
