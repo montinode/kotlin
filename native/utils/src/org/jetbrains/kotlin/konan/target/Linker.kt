@@ -57,27 +57,17 @@ private fun llvmArStaticLibraryCommands(
         "qcsDL"
     }
     val members = objectFiles + libraries
+    // Always pass the inputs via a response file. A static binary that bundles a per-file cache pulls in hundreds of
+    // archives, which would overflow the Windows command-line length limit (CreateProcess error=206); routing through
+    // a response file avoids that unconditionally. `--rsp-quoting=windows` keeps backslashes in Windows paths literal
+    // (forward-slash Unix paths are unaffected).
     return listOf(Command(llvmAr).apply {
-        // A static binary that bundles a per-file cache pulls in hundreds of archives; passing them all on
-        // the command line overflows the Windows command-line length limit (CreateProcess error=206).
-        // Once the inputs get long, spill them into an llvm-ar response file.
-        if (members.sumOf { it.length } > MAX_LINKER_COMMAND_LINE_LENGTH) {
-            // `--rsp-quoting=windows` makes llvm-ar treat backslashes in the quoted paths literally —
-            // the natural quoting for Windows paths; forward-slash Unix paths are unaffected.
-            +"--rsp-quoting=windows"
-            +operation
-            +executable
-            +responseFileArg(tempFiles, "ar-members", members)
-        } else {
-            +operation
-            +executable
-            +members
-        }
+        +"--rsp-quoting=windows"
+        +operation
+        +executable
+        +responseFileArg(tempFiles, "ar-members", members)
     })
 }
-
-// Kept safely below the Windows command-line length limit (32767), leaving room for the program path and the rest of the arguments.
-private const val MAX_LINKER_COMMAND_LINE_LENGTH = 30_000
 
 // Writes [paths] (one double-quoted entry per line) into a response file and returns the `@file` argument for it.
 // Both llvm-ar and clang are invoked with `--rsp-quoting=windows`, so this single quoting (backslashes kept literally,
