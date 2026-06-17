@@ -8,6 +8,8 @@ package org.jetbrains.kotlin.gradle.internal.properties
 import org.gradle.api.Project
 import org.gradle.api.provider.Provider
 import org.jetbrains.kotlin.gradle.internal.properties.NativeProperties.Companion.KONAN_DATA_DIR
+import org.jetbrains.kotlin.gradle.plugin.diagnostics.KotlinToolingDiagnostics
+import org.jetbrains.kotlin.gradle.plugin.diagnostics.reportDiagnosticOncePerBuild
 import org.jetbrains.kotlin.gradle.utils.NativeCompilerDownloader
 import java.io.File
 
@@ -36,6 +38,8 @@ internal interface NativeProperties {
      * Provider should always be present.
      */
     val actualNativeHomeDirectory: Provider<File>
+
+    val enableReleaseBinaryCache: Provider<Boolean>
 
     companion object {
         /**
@@ -113,6 +117,21 @@ private class NativePropertiesLoader(private val project: Project) : NativePrope
                 )
         )
 
+    override val enableReleaseBinaryCache: Provider<Boolean> = propertiesService.flatMap {
+        it.property(NATIVE_ENABLE_RELEASE_BINARY_CACHE, project).map { enabled ->
+            if (enabled) {
+                project.reportDiagnosticOncePerBuild(
+                    KotlinToolingDiagnostics.ExperimentalFeatureWarning(
+                        "Release binary cache",
+                        "https://youtrack.jetbrains.com/issue/KT-86492",
+                    ),
+                    key = "ReleaseBinaryCache"
+                )
+            }
+            enabled
+        }
+    }
+
     companion object {
         private const val PROPERTIES_PREFIX = "kotlin.native"
 
@@ -170,6 +189,11 @@ private class NativePropertiesLoader(private val project: Project) : NativePrope
         private val NATIVE_TOOLCHAIN_ENABLED = PropertiesBuildService.BooleanGradleProperty(
             name = "$PROPERTIES_PREFIX.toolchain.enabled",
             defaultValue = true
+        )
+
+        private val NATIVE_ENABLE_RELEASE_BINARY_CACHE = PropertiesBuildService.BooleanGradleProperty(
+            name = "$PROPERTIES_PREFIX.enableReleaseBinaryCache",
+            defaultValue = false
         )
     }
 }

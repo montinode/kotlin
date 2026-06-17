@@ -117,7 +117,7 @@ open class KonanCacheTask @Inject constructor(
         val args = buildList {
             if (withOptimizations.get()) {
                 add("-opt")
-                add("-Xbinary=optCache=true")
+                add("-Xbinary=enableReleaseBinaryCache=true")
             } else {
                 add("-g")
             }
