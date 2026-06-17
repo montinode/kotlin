@@ -15,18 +15,17 @@ import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.expressions.impl.IrCompositeImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrGetObjectValueImpl
+import org.jetbrains.kotlin.ir.expressions.impl.IrConstImpl
 import org.jetbrains.kotlin.ir.irAttribute
-import org.jetbrains.kotlin.ir.types.IrType
-import org.jetbrains.kotlin.ir.types.getPrimitiveType
-import org.jetbrains.kotlin.ir.types.getUnsignedType
-import org.jetbrains.kotlin.ir.types.isString
+import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.ir.visitors.IrVisitor
+import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.resolve.constants.evaluate.CompileTimeType
 import org.jetbrains.kotlin.resolve.constants.evaluate.canEvalOp
 import org.jetbrains.kotlin.resolve.constants.evaluate.evalBinaryOp
 import org.jetbrains.kotlin.resolve.constants.evaluate.evalUnaryOp
+import org.jetbrains.kotlin.utils.addToStdlib.runIf
 
 var IrConst.wasInlined: Boolean? by irAttribute(copyByDefault = true)
 
@@ -53,33 +52,47 @@ private class ConstInliner(
     override fun visitConst(expression: IrConst, data: Nothing?): IrConst = expression
 
     override fun visitCall(expression: IrCall, data: Nothing?): IrExpression? {
-        return expression.correspondingProperty?.backingField?.let {
-            expression.tryToInline(it)
-        } ?: evaluateBuiltinCall(expression)
+        val property = expression.correspondingProperty
+        val field = property?.backingField
+        return when {
+            field != null -> {
+                if (!field.canBeInlined()) return evaluateBuiltinCall(expression)
+
+                val const = field.getInitializerAndReportInlining(expression)
+                val receiver = expression.dispatchReceiver
+                if (receiver == null || receiver.shouldDropConstReceiver()) return const
+
+                IrCompositeImpl(expression.startOffset, expression.endOffset, expression.type, null, listOf(receiver, const))
+            }
+            property != null -> {
+                if (!property.isConst) return evaluateBuiltinCall(expression)
+
+                val const = property.getter?.body?.statements?.singleOrNull() as? IrConst ?: return evaluateBuiltinCall(expression)
+                val receiver = expression.dispatchReceiver
+                if (receiver == null || receiver.shouldDropConstReceiver()) return const
+
+                IrCompositeImpl(expression.startOffset, expression.endOffset, expression.type, null, listOf(receiver, const))
+            }
+            else -> evaluateBuiltinCall(expression)
+        }
     }
 
     override fun visitGetField(expression: IrGetField, data: Nothing?): IrExpression? {
         val field = expression.symbol.owner
-        return expression.tryToInline(field) ?: visitExpression(expression, data)
-    }
+        if (!field.canBeInlined()) return null
 
-    override fun visitWhen(expression: IrWhen, data: Nothing?): IrConst? {
-        // Only fold the boolean `&&`/`||` operators, which are lowered to `when`.
-        if (expression.origin != IrStatementOrigin.ANDAND && expression.origin != IrStatementOrigin.OROR) return null
-        for (branch in expression.branches) {
-            val condition = branch.condition.evaluateAsConst()?.value as? Boolean ?: return null
-            if (condition) {
-                return branch.result.evaluateAsConst()
-            }
-        }
-        return null
+        val const = field.getInitializerAndReportInlining(expression)
+        val receiver = expression.receiver
+        if (receiver == null || receiver.shouldDropConstReceiver()) return const
+
+        return IrCompositeImpl(expression.startOffset, expression.endOffset, expression.type, null, listOf(receiver, const))
     }
 
     override fun visitStringConcatenation(expression: IrStringConcatenation, data: Nothing?): IrConst? {
         val builder = StringBuilder()
         for (argument in expression.arguments) {
             val const = argument.evaluateAsConst() ?: return null
-            builder.append(const.stringRepresentation() ?: return null)
+            builder.append(const.getCastedValue() ?: return null)
         }
         return builder.toString().toIrConstOrNull(expression.type, expression.startOffset, expression.endOffset)
     }
@@ -97,9 +110,15 @@ private class ConstInliner(
         val resultType = expression.type
         if (isFloatingPointOptimizationDisabled && resultType.isFloatOrDouble()) return null
 
-        val name = expression.symbol.owner.name.asString()
-        val operands = expression.arguments.map { argument ->
-            val const = argument?.evaluateAsConst() ?: return null
+        val owner = expression.symbol.owner
+        val name = owner.name.asString()
+        val operands = expression.arguments.mapIndexed { index, argument ->
+            val const = argument?.evaluateAsConst()
+            // This hack is required because on fir2ir level defaults are represented as stubs.
+                ?: runIf(argument == null && owner.parameters[index].defaultValue != null && name == "trimMargin") {
+                    IrConstImpl.string(UNDEFINED_OFFSET, UNDEFINED_OFFSET, owner.parameters[index].type, "|")
+                }
+                ?: return null
             if (isFloatingPointOptimizationDisabled && const.type.isFloatOrDouble()) return null
             const
         }
@@ -107,15 +126,15 @@ private class ConstInliner(
         val computed: Any? = try {
             when (operands.size) {
                 1 -> {
-                    val type = operands[0].type.toCompileTimeType() ?: return null
-                    val value = operands[0].value ?: return null
+                    val type = owner.parameters[0].type.toCompileTimeType() ?: return null
+                    val value = operands[0].getCastedValue() ?: return null
                     evaluateUnaryOperation(name, type, value)
                 }
                 2 -> {
-                    val leftType = operands[0].type.toCompileTimeType() ?: return null
-                    val rightType = operands[1].type.toCompileTimeType() ?: return null
-                    val left = operands[0].value ?: return null
-                    val right = operands[1].value ?: return null
+                    val leftType = owner.parameters[0].type.toCompileTimeType() ?: return null
+                    val rightType = owner.parameters[1].type.toCompileTimeType() ?: return null
+                    val left = operands[0].getCastedValue() ?: return null
+                    val right = operands[1].getCastedValue() ?: return null
                     evaluateBinaryOperation(name, leftType, left, rightType, right)
                 }
                 else -> return null
@@ -127,29 +146,6 @@ private class ConstInliner(
 
         if (computed == null) return null
         return computed.toIrConstOrNull(resultType, expression.startOffset, expression.endOffset)
-    }
-
-    // Split the given expression into access to receiver (to keep semantic intact) and const value if applicable
-    private fun IrExpression.tryToInline(field: IrField): IrExpression? {
-        if (!field.canBeInlined()) return null
-
-        val receiver = when (this) {
-            is IrCall -> dispatchReceiver
-            is IrGetField -> receiver
-            else -> return null
-        }
-
-        val const = field.getInitializerAndReportInlining(this)
-        if (receiver == null || receiver.shouldDropConstReceiver()) return const
-
-        val fieldParent = field.parentAsClass
-        val getObject = IrGetObjectValueImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, fieldParent.defaultType, fieldParent.symbol)
-        when (this) {
-            is IrCall -> this.dispatchReceiver = getObject
-            is IrGetField -> this.receiver = getObject
-        }
-
-        return IrCompositeImpl(startOffset, endOffset, this.type, null, listOf(receiver, const))
     }
 
     private fun IrField.getInitializerAndReportInlining(original: IrExpression): IrConst {
@@ -171,6 +167,15 @@ private class ConstInliner(
 
         private val IrProperty?.isConst: Boolean
             get() = this?.isConst == true
+
+        private val IrDeclarationWithName.callableId: CallableId?
+            get() {
+                return when (val parent = this.parent) {
+                    is IrClass -> parent.classId?.let { CallableId(it, name) }
+                    is IrPackageFragment -> CallableId(parent.packageFqName, name)
+                    else -> null
+                }
+            }
 
         private fun IrExpression.shouldDropConstReceiver(): Boolean {
             return this is IrGetValue || this is IrGetObjectValue
@@ -211,25 +216,28 @@ private class ConstInliner(
         private fun IrType.isFloatOrDouble(): Boolean =
             getPrimitiveType().let { it == PrimitiveType.FLOAT || it == PrimitiveType.DOUBLE }
 
-        private fun IrType.toCompileTimeType(): CompileTimeType? = when (getPrimitiveType()) {
-            PrimitiveType.BOOLEAN -> CompileTimeType.BOOLEAN
-            PrimitiveType.CHAR -> CompileTimeType.CHAR
-            PrimitiveType.BYTE -> CompileTimeType.BYTE
-            PrimitiveType.SHORT -> CompileTimeType.SHORT
-            PrimitiveType.INT -> CompileTimeType.INT
-            PrimitiveType.LONG -> CompileTimeType.LONG
-            PrimitiveType.FLOAT -> CompileTimeType.FLOAT
-            PrimitiveType.DOUBLE -> CompileTimeType.DOUBLE
-            null -> if (isString()) CompileTimeType.STRING else null
-        }
-
-        // Unsigned constants are stored with their signed representation in IrConst, so reinterpret them before rendering.
-        private fun IrConst.stringRepresentation(): String? = when (type.getUnsignedType()) {
-            UnsignedType.UBYTE -> (value as? Byte)?.toUByte()?.toString()
-            UnsignedType.USHORT -> (value as? Short)?.toUShort()?.toString()
-            UnsignedType.UINT -> (value as? Int)?.toUInt()?.toString()
-            UnsignedType.ULONG -> (value as? Long)?.toULong()?.toString()
-            null -> value.toString()
+        private fun IrType.toCompileTimeType(): CompileTimeType? {
+            if (this.isAny() || type.isNullableAny()) return CompileTimeType.ANY
+            return when (getPrimitiveType()) {
+                PrimitiveType.BOOLEAN -> CompileTimeType.BOOLEAN
+                PrimitiveType.CHAR -> CompileTimeType.CHAR
+                PrimitiveType.BYTE -> CompileTimeType.BYTE
+                PrimitiveType.SHORT -> CompileTimeType.SHORT
+                PrimitiveType.INT -> CompileTimeType.INT
+                PrimitiveType.LONG -> CompileTimeType.LONG
+                PrimitiveType.FLOAT -> CompileTimeType.FLOAT
+                PrimitiveType.DOUBLE -> CompileTimeType.DOUBLE
+                null -> when (getUnsignedType()) {
+                    UnsignedType.UBYTE -> CompileTimeType.UBYTE
+                    UnsignedType.USHORT -> CompileTimeType.USHORT
+                    UnsignedType.UINT -> CompileTimeType.UINT
+                    UnsignedType.ULONG -> CompileTimeType.ULONG
+                    null -> when {
+                        isString() -> CompileTimeType.STRING
+                        else -> null
+                    }
+                }
+            }
         }
 
         private fun IrCall.isCompileTimeBuiltinCall(irBuiltIns: IrBuiltIns): Boolean {
@@ -241,7 +249,7 @@ private class ConstInliner(
             val firstArgType = owner.parameters.getOrNull(1)?.type?.toCompileTimeType()
 
             val inBuiltinMap = canEvalOp(
-                callableId = owner.callableId,
+                callableId = owner.callableId ?: return false,
                 typeA = receiverType,
                 typeB = firstArgType
             )
@@ -250,6 +258,31 @@ private class ConstInliner(
 
         private fun IrDeclaration.fromStdlib(): Boolean {
             return this.getPackageFragment().packageFqName.startsWith(StandardNames.BUILT_INS_PACKAGE_NAME)
+        }
+
+        private fun IrConst.getCastedValue(): Any? {
+            if (value == null) return null
+            val constType = this.type.makeNotNull().removeAnnotations()
+            return when (this.type.getPrimitiveType()) {
+                PrimitiveType.BOOLEAN -> this.value as Boolean
+                PrimitiveType.CHAR -> this.value as Char
+                PrimitiveType.BYTE -> (this.value as Number).toByte()
+                PrimitiveType.SHORT -> (this.value as Number).toShort()
+                PrimitiveType.INT -> (this.value as Number).toInt()
+                PrimitiveType.FLOAT -> (this.value as Number).toFloat()
+                PrimitiveType.LONG -> (this.value as Number).toLong()
+                PrimitiveType.DOUBLE -> (this.value as Number).toDouble()
+                null -> when (constType.getUnsignedType()) {
+                    UnsignedType.UBYTE -> if (this.value is UByte) this.value else (this.value as Number).toLong().toUByte()
+                    UnsignedType.USHORT -> if (this.value is UShort) this.value else (this.value as Number).toLong().toUShort()
+                    UnsignedType.UINT -> if (this.value is UInt) this.value else (this.value as Number).toLong().toUInt()
+                    UnsignedType.ULONG -> if (this.value is ULong) this.value else (this.value as Number).toLong().toULong()
+                    null -> when {
+                        constType.isString() -> this.value as String
+                        else -> error("Cannot convert IrConst ${this.render()} to ConstantValue")
+                    }
+                }
+            }
         }
     }
 }

@@ -384,13 +384,14 @@ private class Fir2IrPipeline(
                 }
 
                 override fun visitExpression(expression: IrExpression, data: Nothing?): IrExpression {
+                    val superResult = super.visitExpression(expression, data)
                     return evaluate(
-                        expression,
+                        superResult,
                         irFile,
                         irBuiltIns,
                         inlineConstTracker,
                         isFloatingPointOptimizationDisabled = targetPlatform.isJs()
-                    ) ?: super.visitExpression(expression, data)
+                    ) ?: superResult
                 }
             }, null)
         }
