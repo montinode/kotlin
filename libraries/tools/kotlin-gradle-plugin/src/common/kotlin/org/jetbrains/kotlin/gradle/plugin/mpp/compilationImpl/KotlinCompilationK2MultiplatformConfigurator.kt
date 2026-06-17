@@ -151,7 +151,7 @@ internal object KotlinCompilationK2MultiplatformConfigurator : KotlinCompilation
 
                             commonizeCInteropTask()?.let { task ->
                                 val cinteropCommonizerDependent = CInteropCommonizerDependent.from(metadataCompilation) ?: return@let
-                                add(task.get().commonizedOutputLibraries(cinteropCommonizerDependent))
+                                add(task.map { it.commonizedOutputLibraries(cinteropCommonizerDependent) })
                             }
                         }
                     }
