@@ -6760,6 +6760,12 @@ public class SourceLikeResolveCandidatesFirTreeConsistencyTestGenerated extends 
     }
 
     @Test
+    @TestMetadata("ClassWithCompanion.kt")
+    public void testClassWithCompanion() {
+      run("ClassWithCompanion.kt");
+    }
+
+    @Test
     @TestMetadata("ClassWithMultipleSuperTypeCalls.kt")
     public void testClassWithMultipleSuperTypeCalls() {
       run("ClassWithMultipleSuperTypeCalls.kt");
