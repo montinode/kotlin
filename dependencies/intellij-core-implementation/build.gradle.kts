@@ -16,6 +16,7 @@ dependencies {
     api("com.jetbrains.intellij.java:java-indexing-impl:$intellijVersion") { isTransitive = false }
     api("com.jetbrains.intellij.java:java-psi-impl:$intellijVersion") { isTransitive = false }
     api("com.jetbrains.intellij.java:java-syntax:$intellijVersion") { isTransitive = false }
+    api("com.jetbrains.intellij.platform:plugin-system-parser-impl:$intellijVersion") { isTransitive = false }
     api("com.jetbrains.intellij.platform:syntax:$intellijVersion") { isTransitive = false }
     api("com.jetbrains.intellij.platform:syntax-psi:$intellijVersion") { isTransitive = false }
     runtimeOnly("com.jetbrains.intellij.platform:diagnostic:$intellijVersion") { isTransitive = false }
