@@ -8,10 +8,10 @@ repositories {
 }
 
 kotlin {
-	val mingwTargetName: String by project
-	val linuxTargetName: String by project
-	val macosTargetName: String by project
-	val currentHostTargetName: String by project
+	val mingwTargetName: String = providers.gradleProperty("mingwTargetName").get()
+	val linuxTargetName: String = providers.gradleProperty("linuxTargetName").get()
+	val macosTargetName: String = providers.gradleProperty("macosTargetName").get()
+	val currentHostTargetName: String = providers.gradleProperty("currentHostTargetName").get()
 
     val mingw = mingwX64(mingwTargetName) { }
     val linux = linuxX64(linuxTargetName) { }

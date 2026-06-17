@@ -35,7 +35,7 @@ kotlin {
     iosX64("iosSim") {
         binaries {
             framework("main") {
-                export(project(":exported"))
+                export(dependencies.project(":exported"))
             }
         }
     }

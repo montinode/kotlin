@@ -94,8 +94,8 @@ interface TestVersions {
         AGP_812(AGP.AGP_812, GradleVersion.version(Gradle.G_8_13), GradleVersion.version(Gradle.G_9_1), JavaVersion.VERSION_17),
         AGP_813(AGP.AGP_813, GradleVersion.version(Gradle.G_8_13), GradleVersion.version(Gradle.G_9_1), JavaVersion.VERSION_17),
         AGP_90(AGP.AGP_90, GradleVersion.version(Gradle.G_9_1), GradleVersion.version(Gradle.G_9_4), JavaVersion.VERSION_17),
-        AGP_91(AGP.AGP_91, GradleVersion.version(Gradle.G_9_3), GradleVersion.version(Gradle.G_9_6), JavaVersion.VERSION_17),
-        AGP_92(AGP.AGP_92, GradleVersion.version(Gradle.G_9_4), GradleVersion.version(Gradle.G_9_6), JavaVersion.VERSION_17),
+        AGP_91(AGP.AGP_91, GradleVersion.version(Gradle.G_9_3), GradleVersion.version(Gradle.G_9_5), JavaVersion.VERSION_17),
+        AGP_92(AGP.AGP_92, GradleVersion.version(Gradle.G_9_4), GradleVersion.version(Gradle.G_9_5), JavaVersion.VERSION_17),
         AGP_93(AGP.AGP_93, GradleVersion.version(Gradle.G_9_4), GradleVersion.version(Gradle.G_9_6), JavaVersion.VERSION_17),
         ;
 
@@ -114,9 +114,9 @@ interface TestVersions {
         const val SHADOW_PLUGIN_VERSION = "8.3.9"
         const val GOOGLE_DAGGER = "2.24"
         const val GRADLE_ENTERPRISE_PLUGIN_VERSION = "3.13.4"
-        const val GRADLE_DEVELOCITY_PLUGIN_VERSION = "3.18"
+        const val GRADLE_DEVELOCITY_PLUGIN_VERSION = "4.4.3"
         const val KOTLINX_ATOMICFU = "0.31.0"
-        const val KOTLINX_KOVER = "0.9.1"
+        const val KOTLINX_KOVER = "0.9.8"
         const val KOTLINX_BINARY_COMPATIBILITY_VALIDATOR = "0.17.0"
         const val DOKKA = "1.8.10"
         const val DOKKA_V2 = "2.1.0"

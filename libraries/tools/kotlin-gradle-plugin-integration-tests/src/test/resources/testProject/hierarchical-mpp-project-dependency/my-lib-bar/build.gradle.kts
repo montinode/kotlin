@@ -27,7 +27,7 @@ kotlin {
         val jvmAndJsMain = create("jvmAndJsMain")
         jvmAndJsMain.dependsOn(commonMain)
 
-        val jvmAndJsTest = create("jvmAndJsTest")
+        val jvmAndJsTest = create("jvmAndJsTest") {
             dependsOn(commonTest)
         }
 
