@@ -37,8 +37,10 @@ class SerializerForInlineClassGenerator(
         val encodeInlineCall: IrExpression = irInvoke(encodeInline, irGet(saveFunc.parameters[1]), serialDescGetter)
         val inlineEncoder = irTemporary(encodeInlineCall, nameHint = "inlineEncoder")
 
+        val substitutor = serializableTypeParameterSubstitutor(saveFunc.parameters[2].type)
         val property = serializableProperties.first()
-        val value = getProperty(irGet(saveFunc.parameters[2]), property.ir, property.type)
+        val propertyTypeInScope = substitutor.substitute(property.type)
+        val value = getProperty(irGet(saveFunc.parameters[2]), property.ir, propertyTypeInScope)
 
         // inlineEncoder.encodeInt/String/SerializableValue
         val elementCall = formEncodeDecodePropertyCall(irGet(inlineEncoder), saveFunc.dispatchReceiverParameter!!, property, {innerSerial, sti ->
@@ -53,7 +55,7 @@ class SerializerForInlineClassGenerator(
                 encoderClass.functionByName("${CallingConventions.encode}${it.elementMethodPrefix}")
             val args = if (it.elementMethodPrefix != "Unit") listOf(value) else emptyList()
             f to args
-        }, null)
+        }, null, propertyTypeInScope = propertyTypeInScope)
 
         val actualEncodeCall = irIfNull(compilerContext.irBuiltIns.unitType, irGet(inlineEncoder), irNull(), elementCall)
         +actualEncodeCall
@@ -71,13 +73,14 @@ class SerializerForInlineClassGenerator(
         // val inlineDecoder = decoder.decodeInline()
         val inlineDecoder: IrExpression = irInvoke(decodeInline, irGet(loadFunc.parameters[1]), serialDescGetter)
 
+        val substitutor = serializableTypeParameterSubstitutor(loadFunc.returnType)
         val property = serializableProperties.first()
-        val inlinedType = property.type
+        val inlinedType = substitutor.substitute(property.type)
         val actualCall = formEncodeDecodePropertyCall(inlineDecoder, loadFunc.dispatchReceiverParameter!!, property, { innerSerial, sti ->
             decoderClass.functionByName( "${CallingConventions.decode}${sti.elementMethodPrefix}SerializableValue") to listOf(innerSerial)
         }, {
             decoderClass.functionByName("${CallingConventions.decode}${it.elementMethodPrefix}") to listOf()
-        }, null, returnTypeHint = inlinedType)
+        }, null, returnTypeHint = inlinedType, propertyTypeInScope = inlinedType)
         val value = coerceToBox(actualCall, loadFunc.returnType)
         +irReturn(value)
     }
@@ -100,6 +103,7 @@ class SerializerForInlineClassGenerator(
             serializableIrClass.constructors.single { it.isPrimary }.symbol,
             listOf(expression),
             (inlineClassBoxType as IrSimpleType).arguments.map { it.typeOrNull },
+            returnTypeHint = inlineClassBoxType,
         )
 
 }

@@ -190,9 +190,11 @@ abstract class BaseIrGenerator(private val currentClass: IrClass, final override
         genericGetter: ((Int, IrType) -> IrExpression)?
     ) {
 
+        val substitutor = serializableTypeParameterSubstitutor(objectToSerialize.symbol.owner.type)
+
         fun IrSerializableProperty.irGet(): IrExpression {
             val ownerType = objectToSerialize.symbol.owner.type
-            val propertyType = this.type
+            val propertyType = substitutor.substitute(this.type)
             return getProperty(irGet(ownerType, objectToSerialize.symbol), ir, propertyType)
         }
 
@@ -218,7 +220,8 @@ abstract class BaseIrGenerator(private val currentClass: IrClass, final override
                     f to args
                 },
                 cachedChildSerializerByIndex(index),
-                genericGetter
+                genericGetter,
+                propertyTypeInScope = substitutor.substitute(property.type),
             )
 
             // check for call to .shouldEncodeElementDefault
@@ -258,19 +261,21 @@ abstract class BaseIrGenerator(private val currentClass: IrClass, final override
         whenDoNot: (sti: IrSerialTypeInfo) -> FunctionWithArgs,
         cachedSerializer: IrExpression?,
         genericGetter: ((Int, IrType) -> IrExpression)? = null,
-        returnTypeHint: IrType? = null
+        returnTypeHint: IrType? = null,
+        // The property type re-expressed in the enclosing generated member's type-parameter scope (KT-69305).
+        propertyTypeInScope: IrType = property.type,
     ): IrExpression {
         val sti = getIrSerialTypeInfo(property, compilerContext)
         val innerSerial = cachedSerializer ?: serializerInstance(
             sti.serializer,
             compilerContext,
-            property.type,
+            propertyTypeInScope,
             property.genericIndex,
             property.ir.parentClassOrNull,
             genericGetter
         )
         val [functionToCall, args: List<IrExpression>] = if (innerSerial != null) whenHaveSerializer(innerSerial, sti) else whenDoNot(sti)
-        val typeArgs = if (functionToCall.owner.typeParameters.isNotEmpty()) listOf(property.type) else listOf()
+        val typeArgs = if (functionToCall.owner.typeParameters.isNotEmpty()) listOf(propertyTypeInScope) else listOf()
         return irInvoke(functionToCall, listOf(encoder) + args, typeArgs, returnTypeHint)
     }
 
@@ -305,6 +310,9 @@ abstract class BaseIrGenerator(private val currentClass: IrClass, final override
                 symbol,
                 listOf(irBuilder.irGetObject(companionClass)) + adjustedArgs.takeIf { it.size == nonDispatchParameters.size }.orEmpty(),
                 adjustedTypeArgs.takeIf { it.size == typeParameters.size }.orEmpty(),
+                // `serializer()` always returns `KSerializer<thisIrType>`; pin the call type to it so the function's own
+                // type parameter (e.g. `T of Foo.Companion.serializer`) doesn't leak into the caller scope (KT-69305).
+                returnTypeHint = kSerializerType(thisIrType),
             )
         }
     }
@@ -332,24 +340,27 @@ abstract class BaseIrGenerator(private val currentClass: IrClass, final override
         generator: SerializerIrGenerator,
         dispatchReceiverParameter: IrValueParameter,
         property: IrSerializableProperty,
-        cachedSerializer: IrExpression?
+        cachedSerializer: IrExpression?,
+        // Re-expresses the property type in the $serializer's own type-parameter scope (KT-69305).
+        propertyTypeSubstitutor: AbstractIrTypeSubstitutor = AbstractIrTypeSubstitutor.Empty,
     ): IrExpression? {
         val nullableSerClass = compilerContext.finderForBuiltins().findProperties(SerialEntityNames.wrapIntoNullableCallableId).single()
+        val propertyType = propertyTypeSubstitutor.substitute(property.type)
 
         val serializerExpression = if (cachedSerializer != null) {
             cachedSerializer
         } else {
             val serializerClassSymbol =
                 property.serializableWith(compilerContext)
-                    ?: if (!property.type.isTypeParameter()) generator.findTypeSerializerOrContext(
+                    ?: if (!propertyType.isTypeParameter()) generator.findTypeSerializerOrContext(
                         compilerContext,
-                        property.type
+                        propertyType
                     ) else null
 
             serializerInstance(
                 serializerClassSymbol,
                 compilerContext,
-                property.type,
+                propertyType,
                 genericIndex = property.genericIndex,
                 property.ir.parentClassOrNull,
             ) { it, _ ->
@@ -358,7 +369,7 @@ abstract class BaseIrGenerator(private val currentClass: IrClass, final override
             }
         }
 
-        return serializerExpression?.let { expr -> wrapWithNullableSerializerIfNeeded(property.type, expr, nullableSerClass) }
+        return serializerExpression?.let { expr -> wrapWithNullableSerializerIfNeeded(propertyType, expr, nullableSerClass) }
     }
 
     context(irBuilder: IrBuilderWithScope) internal fun wrapWithNullableSerializerIfNeeded(
@@ -436,7 +447,14 @@ abstract class BaseIrGenerator(private val currentClass: IrClass, final override
 
         return { index: Int ->
             if (cacheableSerializers[index]) {
-                val lazyDelegate = irInvoke(compilerContext.arrayValueGetter.symbol, irGet(variable), irInt(index))
+                val lazyDelegate = irInvoke(
+                    compilerContext.arrayValueGetter.symbol,
+                    irGet(variable),
+                    irInt(index),
+                    // The cache array element type is `Lazy<KSerializer<Any>>`; without this hint the `get` call would
+                    // keep the unsubstituted `Array.get` return type `T of Array`, leaking it out of scope (KT-69305).
+                    returnTypeHint = lazyType(kSerializerType)
+                )
                 irInvoke(
                     compilerContext.lazyValueGetter,
                     lazyDelegate,
@@ -464,6 +482,11 @@ abstract class BaseIrGenerator(private val currentClass: IrClass, final override
         val serializer = getIrSerialTypeInfo(property, compilerContext).serializer ?: return null
         if (serializer.owner.kind == ClassKind.OBJECT) return null
 
+        // A cached serializer is stored in the (non-generic) companion object, so it must not reference the
+        // serializable class'es type parameters at any depth; if it does, fall back to per-call construction
+        // (in the $serializer's scope) instead of caching, to avoid leaking out-of-scope type parameters (KT-69305).
+        if (property.type.referencesTypeParameter()) return null
+
         val kSerializerType = kSerializerType(property.type)
 
         // if in type arguments there are type parameters - we can't cache it in companion's property because she should use actual serializer
@@ -488,6 +511,13 @@ abstract class BaseIrGenerator(private val currentClass: IrClass, final override
         } else {
             null
         }
+    }
+
+    // Whether [this] type references a type parameter at any nesting depth (e.g. `List<Box<T>>`).
+    private fun IrType.referencesTypeParameter(): Boolean {
+        if (isTypeParameter()) return true
+        val simpleType = this as? IrSimpleType ?: return false
+        return simpleType.arguments.any { (it as? IrTypeProjection)?.type?.referencesTypeParameter() == true }
     }
 
     // create serializers for type arguments if all arguments are classes, `null` otherwise

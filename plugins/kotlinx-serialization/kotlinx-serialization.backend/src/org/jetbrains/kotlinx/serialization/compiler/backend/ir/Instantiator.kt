@@ -373,6 +373,24 @@ internal class Instantiator(
                                 }
                             }
                         }!!
+                        // The serializer instance'es IR type is built from the subclass'es own type parameters
+                        // (e.g. `Value.$serializer<T of Value>`), which are out of scope here. Re-express them using the
+                        // bindings passed down from the container [kType] (or their upper bounds when a parameter is not
+                        // passed down), so the IR type doesn't reference out-of-scope type parameters (KT-69305). The
+                        // serializer value itself is unaffected — only its type annotation changes.
+                        type.classOrNull?.owner?.let { subclassClass ->
+                            if (subclassClass.typeParameters.isNotEmpty()) {
+                                val replacements = subclassClass.typeParameters.mapIndexed { index, tp ->
+                                    val indexInParent = path?.let { mapTypeParameterIndex(index, it) }
+                                    val boundType = indexInParent?.let { (kType.arguments.getOrNull(it) as? IrTypeProjection)?.type }
+                                    makeTypeProjection(boundType ?: tp.representativeUpperBound, Variance.INVARIANT)
+                                }
+                                val substitutor = IrTypeSubstitutor(
+                                    subclassClass.typeParameters.map { it.symbol }, replacements, allowEmptySubstitution = true
+                                )
+                                expr.type = substitutor.substitute(expr.type)
+                            }
+                        }
                         generator.wrapWithNullableSerializerIfNeeded(type, expr, nullableSerClass)
                     }
                 )

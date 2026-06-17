@@ -132,12 +132,14 @@ private fun IrTypeParameter.belongsClass(typeOfClass: IrSimpleType): Boolean {
  * Returns index in [serializableClass] of type parameters used as type argument in [this].
  */
 internal fun IrTypeArgument.indexInClass(serializableClass: IrClass): Int? {
-    val rootTypeParameter = serializableClass.typeParameters.firstOrNull { param ->
-        // TODO is it ok?
-        param.symbol == (this as? IrSimpleType)?.classifier
-    }
-
-    return rootTypeParameter?.index
+    val classifier = (this as? IrSimpleType)?.classifier as? IrTypeParameterSymbol ?: return null
+    // The type argument is one of the serializable class'es own type parameters...
+    serializableClass.typeParameters.firstOrNull { it.symbol == classifier }?.let { return it.index }
+    // ...or the corresponding type parameter of its generated serializer, which mirrors the serializable class'es
+    // parameters positionally. The property type may be expressed in the serializer'es scope rather than the
+    // serializable class'es, to avoid referencing out-of-scope type parameters (KT-69305).
+    val index = classifier.owner.index
+    return if (index in serializableClass.typeParameters.indices) index else null
 }
 
 /**

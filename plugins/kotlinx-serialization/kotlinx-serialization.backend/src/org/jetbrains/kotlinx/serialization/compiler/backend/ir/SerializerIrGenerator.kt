@@ -229,13 +229,18 @@ open class SerializerIrGenerator(
             cacheableChildSerializers
         ) { serializableIrClass.companionObject()!! }
 
+        // Map the serializable class'es type parameters onto the $serializer's own, in whose scope this getter runs.
+        val substitutor = serializableTypeParameterSubstitutor(
+            serializableIrClass.symbol.typeWith(irClass.typeParameters.map { it.defaultType })
+        )
         val allSerializers = serializableProperties.mapIndexed { index, property ->
             requireNotNull(
                 serializerTower(
                     this@SerializerIrGenerator,
                     irFun.dispatchReceiverParameter!!,
                     property,
-                    cachedChildSerializerByIndex(index)
+                    cachedChildSerializerByIndex(index),
+                    substitutor,
                 )
             ) { "Property ${property.name} must have a serializer" }
         }
@@ -329,7 +334,8 @@ open class SerializerIrGenerator(
         whenHaveSerializer: (serializer: IrExpression, sti: IrSerialTypeInfo) -> FunctionWithArgs,
         whenDoNot: (sti: IrSerialTypeInfo) -> FunctionWithArgs,
         cachedSerializer: IrExpression?,
-        returnTypeHint: IrType? = null
+        returnTypeHint: IrType? = null,
+        propertyTypeInScope: IrType = property.type,
     ): IrExpression = formEncodeDecodePropertyCall(
         encoder,
         property,
@@ -340,7 +346,8 @@ open class SerializerIrGenerator(
             val ir = localSerializersFieldsDescriptors[it]
             irGetField(irGet(dispatchReceiver), ir.backingField!!)
         },
-        returnTypeHint
+        returnTypeHint,
+        propertyTypeInScope,
     )
 
     // returns null: Any? for boxed types and 0: <number type> for primitives
@@ -388,6 +395,10 @@ open class SerializerIrGenerator(
 
         val indexVar = irTemporary(irInt(0), "index", isMutable = true)
 
+        // Re-express the serializable class'es type parameters in the `deserialize` scope (the $serializer's own
+        // type parameters), so generated locals/calls don't leak out-of-scope type parameters (KT-69305).
+        val substitutor = serializableTypeParameterSubstitutor(loadFunc.returnType)
+
         // calculating bit mask vars
         val blocksCnt = serializableProperties.bitMaskSlotCount()
 
@@ -405,7 +416,7 @@ open class SerializerIrGenerator(
         // var local0 = null, local1 = null ...
         val serialPropertiesMap = serializableProperties.mapIndexed { i, prop -> i to prop }.associate { [i, serializableProp] ->
             val ir = serializableProp.ir
-            val [expr, type] = defaultValueAndType(ir, serializableProp.type)
+            val [expr, type] = defaultValueAndType(ir, substitutor.substitute(serializableProp.type))
             ir to irTemporary(expr, "local$i", type, isMutable = true)
         }
         // var transient0 = null, transient1 = null ...
@@ -447,7 +458,9 @@ open class SerializerIrGenerator(
                                                              it.owner.name.asString() == "${CallingConventions.decode}${sti.elementMethodPrefix}${CallingConventions.elementPostfix}" &&
                                                                      it.owner.hasShape(dispatchReceiver = true, regularParameters = 2)
                                                          } to listOf(localSerialDesc.get(), irInt(index))
-                                                     }, cachedChildSerializerByIndex(index), returnTypeHint = property.type)
+                                                     }, cachedChildSerializerByIndex(index),
+                                                         returnTypeHint = substitutor.substitute(property.type),
+                                                         propertyTypeInScope = substitutor.substitute(property.type))
                     // local$i = localInput.decode...(...)
                     +irSet(
                         serialPropertiesMap.getValue(property.ir).symbol,
@@ -514,7 +527,7 @@ open class SerializerIrGenerator(
         if (serializableIrClass.shouldHaveGeneratedMethods() && deserCtor != null) {
             var args: List<IrExpression> = serializableProperties.map { serialPropertiesMap.getValue(it.ir).get() }
             args = bitMasks.map { irGet(it) } + args + irNull()
-            +irReturn(irInvoke(deserCtor, args, typeArgs))
+            +irReturn(irInvoke(deserCtor, args, typeArgs, returnTypeHint = loadFunc.returnType))
         } else {
             if (irClass.isLocal) {
                 // if the serializer is local, then the serializable class too, since they must be in the same scope
@@ -578,7 +591,7 @@ open class SerializerIrGenerator(
                 }
             }
 
-            val serializerVar = irTemporary(irInvoke(ctor, ctorArgs, typeArgs), "serializable")
+            val serializerVar = irTemporary(irInvoke(ctor, ctorArgs, typeArgs, returnTypeHint = loadFunc.returnType), "serializable")
             generateSetStandaloneProperties(serializerVar, serialPropertiesMap::getValue, serialPropertiesIndexes::getValue, bitMasks)
             +irReturn(irGet(serializerVar))
         }

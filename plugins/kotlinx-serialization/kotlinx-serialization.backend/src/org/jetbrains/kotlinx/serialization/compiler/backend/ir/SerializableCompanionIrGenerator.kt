@@ -182,7 +182,10 @@ class SerializableCompanionIrGenerator(
     private fun generateSerializerGetter(serializer: IrClassSymbol, methodDescriptor: IrSimpleFunction) {
         addFunctionBody(methodDescriptor) { getter ->
             val args: List<IrExpression> = getter.nonDispatchParameters.map { irGet(it) }
-            val expr = serializerInstance(serializer, compilerContext, serializableIrClass.defaultType) { it, _ -> args[it] }
+            // Build the serializable type from the getter's own type parameters rather than the serializable class's,
+            // so the generated serializer instance references type parameters that are in scope here (KT-69305).
+            val serializableType = serializableIrClass.symbol.typeWith(getter.typeParameters.map { it.defaultType })
+            val expr = serializerInstance(serializer, compilerContext, serializableType) { it, _ -> args[it] }
             +irReturn(requireNotNull(expr))
         }
     }
