@@ -841,6 +841,98 @@ open class CommonizerIT : KGPBaseTest() {
         }
     }
 
+    @DisplayName("KT-82398 - own cinterop is added to nativeMain fragment dependencies with separate compilation")
+    @GradleTest
+    fun ownCInteropIsAddedToFragmentDependencies(gradleVersion: GradleVersion) {
+        project("empty", gradleVersion) {
+            plugins {
+                kotlin("multiplatform")
+            }
+
+            gradleProperties.appendText(
+                """
+                |${PropertiesProvider.PropertyNames.KOTLIN_KMP_SEPARATE_COMPILATION}=true
+                |
+                """.trimMargin()
+            )
+
+            buildScriptInjection {
+                val defFile = project.layout.projectDirectory.dir("src/nativeInterop/cinterop").file("mutex.def").asFile
+                defFile.parentFile.mkdirs()
+                defFile.writeText(
+                    """
+                    package=io.ktor.io.interop.mutex
+                    ---
+                    #include <stdio.h>
+                    #include <stdlib.h>
+                    #include <pthread.h>
+                    
+                    typedef struct ktor_lock_support {
+                        volatile int locked;
+                        pthread_mutex_t mutex;
+                        pthread_cond_t cond;
+                    } ktor_lock_support_t;
+                    
+                    typedef struct mutex_node {
+                        ktor_lock_support_t* mutex;
+                        struct mutex_node* next;
+                    } ktor_mutex_node_t;
+                    
+                    ktor_lock_support_t* ktor_lock_support_init() {
+                        ktor_lock_support_t * ls = (ktor_lock_support_t *) malloc(sizeof(ktor_lock_support_t));
+                        ls->locked = 0;
+                        pthread_mutex_init(&ls->mutex, NULL);
+                        pthread_cond_init(&ls->cond, NULL);
+                        return ls;
+                    }
+                                        
+                    ktor_mutex_node_t* ktor_mutex_node_init(ktor_mutex_node_t* mutexNode) {
+                        mutexNode->mutex = ktor_lock_support_init();
+                        mutexNode->next = NULL;
+                        return mutexNode;
+                    }
+                    
+                    void ktor_lock(ktor_lock_support_t* ls) {
+                        pthread_mutex_lock(&ls->mutex);
+                        while (ls->locked == 1) { // wait till locked are available
+                            pthread_cond_wait(&ls->cond, &ls->mutex);
+                        }
+                        ls->locked = 1;
+                        pthread_mutex_unlock(&ls->mutex);
+                    }
+                    
+                    void ktor_unlock(ktor_lock_support_t* ls) {
+                        pthread_mutex_lock(&ls->mutex);
+                        ls->locked = 0;
+                        pthread_cond_broadcast(&ls->cond);
+                        pthread_mutex_unlock(&ls->mutex);
+                    }
+                    """.trimIndent()
+                )
+
+                project.applyMultiplatform {
+                    applyDefaultHierarchyTemplate()
+                    listOf(linuxX64(), linuxArm64()).forEach { target ->
+                        target.compilations.getByName("main").cinterops.create("mutex") {
+                            it.definitionFile.set(defFile)
+                        }
+                    }
+                    sourceSets.getByName("linuxMain").compileSource(
+                        """
+                            @file:OptIn(ExperimentalForeignApi::class)
+                            import io.ktor.io.interop.mutex.ktor_mutex_node_t
+                            import kotlinx.cinterop.CPointer
+                            import kotlinx.cinterop.ExperimentalForeignApi
+                            
+                            val mutex2: CPointer<ktor_mutex_node_t>? = null
+                            """.trimIndent()
+                    )
+                }
+            }
+            build(":compileKotlinLinuxX64")
+        }
+    }
+
     private fun TestProject.checkCommonizedMetadataBuildOnNonMac() {
         assertEquals(
             """
