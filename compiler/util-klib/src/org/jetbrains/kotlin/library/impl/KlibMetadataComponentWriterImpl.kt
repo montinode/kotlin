@@ -5,7 +5,9 @@
 
 package org.jetbrains.kotlin.library.impl
 
+import org.jetbrains.kotlin.library.KlibFragmentMappingTracker
 import org.jetbrains.kotlin.library.SerializedFragment
+import org.jetbrains.kotlin.library.SerializedFragmentWithSource
 import org.jetbrains.kotlin.library.SerializedMetadata
 import org.jetbrains.kotlin.library.components.KlibMetadataComponentLayout
 import org.jetbrains.kotlin.library.writer.KlibComponentWriter
@@ -15,7 +17,8 @@ import org.jetbrains.kotlin.konan.file.File as KlibFile
  * An implementation of [KlibComponentWriter] that writes [SerializedMetadata] to the constructed Klib library.
  */
 internal class KlibMetadataComponentWriterImpl(
-    private val metadata: SerializedMetadata
+    private val metadata: SerializedMetadata,
+    private val fileMappingTracker: KlibFragmentMappingTracker? = null,
 ) : KlibComponentWriter {
     override fun writeTo(root: KlibFile) {
         val layout = KlibMetadataComponentLayout(root)
@@ -34,10 +37,18 @@ internal class KlibMetadataComponentWriterImpl(
             fun withPadding(packageFragmentPartIndex: Int) = String.format("%0${padding}d", packageFragmentPartIndex)
 
             packageFragmentParts.forEachIndexed { packageFragmentPartIndex, packageFragmentPart ->
-                layout.getPackageFragmentFile(
+                val packageFragmentFile = layout.getPackageFragmentFile(
                     packageFqName = packageFqName,
                     partName = "${withPadding(packageFragmentPartIndex)}_$shortPackageName"
-                ).writeBytes(packageFragmentPart.content)
+                )
+                packageFragmentFile.writeBytes(packageFragmentPart.content)
+
+                if (fileMappingTracker != null && packageFragmentPart is SerializedFragmentWithSource) {
+                    fileMappingTracker.recordSourceFileToKlibFragmentMapping(
+                        packageFragmentPart.sourceFilePath?.let { KlibFile(it) },
+                        packageFragmentFile
+                    )
+                }
             }
         }
     }

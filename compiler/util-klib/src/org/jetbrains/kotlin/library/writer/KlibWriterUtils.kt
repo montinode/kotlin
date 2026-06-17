@@ -5,6 +5,7 @@
 
 package org.jetbrains.kotlin.library.writer
 
+import org.jetbrains.kotlin.library.KlibFragmentMappingTracker
 import org.jetbrains.kotlin.library.SerializedIrModule
 import org.jetbrains.kotlin.library.SerializedMetadata
 import org.jetbrains.kotlin.library.impl.KlibIrComponentWriterImpl
@@ -13,8 +14,8 @@ import org.jetbrains.kotlin.library.impl.KlibMetadataComponentWriterImpl
 /**
  * A [KlibWriter] DSL extension to include [SerializedMetadata] to the created library.
  */
-fun KlibWriterSpec.includeMetadata(metadata: SerializedMetadata) {
-    include(KlibMetadataComponentWriterImpl(metadata))
+fun KlibWriterSpec.includeMetadata(metadata: SerializedMetadata, fileMappingTracker: KlibFragmentMappingTracker? = null) {
+    include(KlibMetadataComponentWriterImpl(metadata, fileMappingTracker))
 }
 
 /**
