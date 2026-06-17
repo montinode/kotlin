@@ -20,6 +20,7 @@ public class JavaRecordComponentStubSerializer implements StubSerializer<PsiReco
     myType = elementType;
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Override
   public void serialize(@NotNull PsiRecordComponentStubImpl stub, @NotNull StubOutputStream dataStream) throws IOException {
     dataStream.writeName(stub.getName());
@@ -27,6 +28,7 @@ public class JavaRecordComponentStubSerializer implements StubSerializer<PsiReco
     dataStream.writeByte(stub.getFlags());
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Override
   public @NotNull PsiRecordComponentStubImpl deserialize(@NotNull StubInputStream dataStream, StubElement parentStub) throws IOException {
     String name = dataStream.readNameString();

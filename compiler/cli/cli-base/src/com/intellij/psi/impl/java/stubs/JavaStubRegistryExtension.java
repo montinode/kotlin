@@ -5,7 +5,7 @@
 
 package com.intellij.psi.impl.java.stubs;
 
-import com.intellij.lang.java.JavaParserDefinition;
+import com.intellij.lang.java.*;
 import com.intellij.psi.impl.java.stubs.factories.JavaAnnotationParameterListStubFactory;
 import com.intellij.psi.impl.java.stubs.factories.JavaAnnotationStubFactory;
 import com.intellij.psi.impl.java.stubs.factories.JavaClassInitializerStubFactory;
@@ -64,6 +64,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class JavaStubRegistryExtension implements StubRegistryExtension {
     @Override
+    @SuppressWarnings("deprecation")
     public void register(@NotNull StubRegistry registry) {
         JavaStubElementTypePsiElementMappingRegistry.getInstance();
 

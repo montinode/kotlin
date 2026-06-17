@@ -26,6 +26,7 @@ public class JavaClassReferenceListStubSerializer implements StubSerializer<PsiC
     myType = elementType;
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Override
   public void serialize(@NotNull PsiClassReferenceListStub stub, @NotNull StubOutputStream dataStream) throws IOException {
     TypeInfo[] types = stub.getTypes();
@@ -35,6 +36,7 @@ public class JavaClassReferenceListStubSerializer implements StubSerializer<PsiC
     }
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Override
   public @NotNull PsiClassReferenceListStub deserialize(@NotNull StubInputStream dataStream, StubElement parentStub) throws IOException {
     int len = dataStream.readVarInt();

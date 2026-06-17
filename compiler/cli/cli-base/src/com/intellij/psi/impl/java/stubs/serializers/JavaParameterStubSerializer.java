@@ -19,6 +19,7 @@ public class JavaParameterStubSerializer implements StubSerializer<PsiParameterS
     myType = elementType;
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Override
   public void serialize(@NotNull PsiParameterStubImpl stub, @NotNull StubOutputStream dataStream) throws IOException {
     dataStream.writeName(stub.getName());
@@ -26,6 +27,7 @@ public class JavaParameterStubSerializer implements StubSerializer<PsiParameterS
     dataStream.writeByte(stub.getFlags());
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Override
   public @NotNull PsiParameterStubImpl deserialize(@NotNull StubInputStream dataStream, StubElement parentStub) throws IOException {
     String name = dataStream.readNameString();

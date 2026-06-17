@@ -33,6 +33,7 @@ public class JavaMethodStubSerializer implements StubSerializer<PsiMethodStub> {
     myType = elementType;
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Override
   public void serialize(@NotNull PsiMethodStub stub, @NotNull StubOutputStream dataStream) throws IOException {
     dataStream.writeName(stub.getName());
@@ -43,18 +44,20 @@ public class JavaMethodStubSerializer implements StubSerializer<PsiMethodStub> {
     }
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Override
   public @NotNull PsiMethodStub deserialize(@NotNull StubInputStream dataStream, StubElement parentStub) throws IOException {
     String name = dataStream.readNameString();
-    final TypeInfo type = TypeInfo.readTYPE(dataStream);
+    TypeInfo type = TypeInfo.readTYPE(dataStream);
     byte flags = dataStream.readByte();
     String defaultMethodValue = PsiMethodStubImpl.isAnnotationMethod(flags) ? dataStream.readNameString() : null;
     return new PsiMethodStubImpl(parentStub, name, type, flags, defaultMethodValue);
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Override
   public void indexStub(@NotNull PsiMethodStub stub, @NotNull IndexSink sink) {
-    final String name = stub.getName();
+    String name = stub.getName();
     if (name != null) {
       sink.occurrence(JavaStubIndexKeys.METHODS, name);
       if (RecordUtil.isStaticNonPrivateMember(stub)) {
@@ -104,7 +107,8 @@ public class JavaMethodStubSerializer implements StubSerializer<PsiMethodStub> {
 
   private static boolean isStatic(@NotNull StubElement<?> stub) {
     if (stub instanceof PsiMemberStub) {
-      StubElement<PsiModifierList> modList =
+        @SuppressWarnings("unchecked")
+        StubElement<PsiModifierList> modList =
         (StubElement<PsiModifierList>)stub.findChildStubByElementType(JavaStubElementTypes.MODIFIER_LIST);
       if (modList != null) {
         return BitUtil.isSet(((PsiModifierListStub)modList).getModifiersMask(),
@@ -115,6 +119,7 @@ public class JavaMethodStubSerializer implements StubSerializer<PsiMethodStub> {
   }
 
   private static Set<String> getOwnTypeParameterNames(StubElement<?> stubElement) {
+    @SuppressWarnings("unchecked")
     StubElement<PsiTypeParameterList> typeParamList =
       (StubElement<PsiTypeParameterList>)stubElement.findChildStubByElementType(JavaStubElementTypes.TYPE_PARAMETER_LIST);
     if (typeParamList == null) return Collections.emptySet();

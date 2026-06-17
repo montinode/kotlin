@@ -25,6 +25,7 @@ public class JavaClassStubSerializer implements StubSerializer<PsiClassStub<PsiC
     myType = elementType;
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Override
   public void serialize(@NotNull PsiClassStub<PsiClass> stub, @NotNull StubOutputStream dataStream) throws IOException {
     dataStream.writeShort(((PsiClassStubImpl<?>)stub).getFlags());
@@ -40,6 +41,7 @@ public class JavaClassStubSerializer implements StubSerializer<PsiClassStub<PsiC
     }
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Override
   public @NotNull PsiClassStub<PsiClass> deserialize(@NotNull StubInputStream dataStream, StubElement parentStub) throws IOException {
     short flags = dataStream.readShort();
@@ -65,6 +67,7 @@ public class JavaClassStubSerializer implements StubSerializer<PsiClassStub<PsiC
     }
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Override
   public void indexStub(@NotNull PsiClassStub<PsiClass> stub, @NotNull IndexSink sink) {
     if (stub.isImplicit()) {
@@ -82,12 +85,12 @@ public class JavaClassStubSerializer implements StubSerializer<PsiClassStub<PsiC
       }
     }
     else {
-      final String shortName = stub.getName();
+      String shortName = stub.getName();
       if (shortName != null && (!(stub instanceof PsiClassStubImpl) || !((PsiClassStubImpl<?>)stub).isAnonymousInner())) {
         sink.occurrence(JavaStubIndexKeys.CLASS_SHORT_NAMES, shortName);
       }
 
-      final String fqn = stub.getQualifiedName();
+      String fqn = stub.getQualifiedName();
       if (fqn != null) {
         sink.occurrence(JavaStubIndexKeys.CLASS_FQN, fqn);
       }

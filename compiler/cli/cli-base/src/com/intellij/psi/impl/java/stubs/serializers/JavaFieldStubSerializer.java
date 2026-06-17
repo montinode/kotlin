@@ -22,6 +22,7 @@ public class JavaFieldStubSerializer implements StubSerializer<PsiFieldStub> {
     myType = elementType;
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Override
   public void serialize(@NotNull PsiFieldStub stub, @NotNull StubOutputStream dataStream) throws IOException {
     dataStream.writeName(stub.getName());
@@ -30,6 +31,7 @@ public class JavaFieldStubSerializer implements StubSerializer<PsiFieldStub> {
     dataStream.writeByte(((PsiFieldStubImpl)stub).getFlags());
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Override
   public @NotNull PsiFieldStub deserialize(@NotNull StubInputStream dataStream, StubElement parentStub) throws IOException {
     String name = dataStream.readNameString();
@@ -39,6 +41,7 @@ public class JavaFieldStubSerializer implements StubSerializer<PsiFieldStub> {
     return new PsiFieldStubImpl(parentStub, name, type, initializerText, flags);
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Override
   public void indexStub(@NotNull PsiFieldStub stub, @NotNull IndexSink sink) {
     String name = stub.getName();
