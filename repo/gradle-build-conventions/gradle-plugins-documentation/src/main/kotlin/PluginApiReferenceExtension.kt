@@ -26,11 +26,8 @@ abstract class PluginApiReferenceExtension @Inject constructor(
     fun additionalDokkaConfiguration(configuration: DokkaExtension.() -> Unit) {
         project.dokkaExtension?.apply {
             pluginsConfiguration.named("html", DokkaHtmlPluginParameters::class.java) {
-                val rootDir = project.parent?.projectDir
-                if (rootDir != null) {
-                    templatesDir.set(
-                        rootDir.resolve("build/api-reference/templates")
-                    )
+                project.parent?.projectDir?.resolve("build/api-reference/templates")?.let {
+                    templatesDir.set(it)
                 }
             }
         }

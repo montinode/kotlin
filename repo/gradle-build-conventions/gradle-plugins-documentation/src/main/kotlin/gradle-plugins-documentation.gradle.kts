@@ -63,11 +63,9 @@ dokka {
         templatesDir.set(project.rootDir.resolve("build/api-reference/templates"))
     }
 
-    documentationExtension.documentationOldVersions.map { oldVersion ->
-        pluginsConfiguration.versioning {
-            version.set(project.version.toString())
-            olderVersionsDir.set(oldVersion.asFile)
-        }
+    pluginsConfiguration.versioning {
+        version.set(project.version.toString())
+        olderVersionsDir.set(documentationExtension.documentationOldVersions)
     }
 }
 
