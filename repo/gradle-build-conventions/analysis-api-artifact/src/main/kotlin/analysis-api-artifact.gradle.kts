@@ -1,5 +1,7 @@
 standardPublicJars()
 
+val artifactExtension = extensions.create<AnalysisApiArtifactExtension>("analysisApiArtifact")
+
 analysisApiPublishingLatch {
     val propertyName = "analysis.api.version"
     version = when (val rawVersion = rootProject.findProperty(propertyName)?.toString()) {
