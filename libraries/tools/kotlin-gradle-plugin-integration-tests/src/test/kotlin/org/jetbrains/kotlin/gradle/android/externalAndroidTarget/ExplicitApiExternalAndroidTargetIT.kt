@@ -5,36 +5,31 @@
 
 package org.jetbrains.kotlin.gradle.android.externalAndroidTarget
 
-import com.android.build.api.dsl.androidLibrary
 import org.gradle.api.logging.LogLevel
-import org.gradle.kotlin.dsl.kotlin
 import org.gradle.util.GradleVersion
 import org.jetbrains.kotlin.gradle.testbase.*
 
-@AndroidTestVersions(minVersion = TestVersions.AGP.AGP_813)
+// Used AGP 9.0 as the minimal stable version supported for the android library
+@AndroidTestVersions(minVersion = TestVersions.AGP.AGP_90)
 @AndroidGradlePluginTests
 class ExplicitApiExternalAndroidTargetIT : KGPBaseTest() {
+
+    // Uses `com.android.kotlin.multiplatform.library`, requires AGP new DSL.
+    override val defaultBuildOptions: BuildOptions
+        get() = super.defaultBuildOptions.copy(enableLegacyAgpDsl = false)
 
     @GradleAndroidTest
     fun `test - disabled - builds with implicit declarations`(
         gradleVersion: GradleVersion, androidVersion: String, jdkVersion: JdkVersions.ProvidedJdk,
     ) {
-        project(
-            "empty",
-            gradleVersion,
-            buildOptions = defaultBuildOptions.copy(androidVersion = androidVersion),
-            buildJdk = jdkVersion.location,
+        externalAndroidLibraryProject(
+            gradleVersion = gradleVersion,
+            androidVersion = androidVersion,
+            jdkVersion = jdkVersion,
+            namespace = "org.jetbrains.sample",
         ) {
-            plugins {
-                kotlin("multiplatform")
-                id("com.android.kotlin.multiplatform.library")
-            }
             buildScriptInjection {
                 kotlinMultiplatform.apply {
-                    androidLibrary {
-                        compileSdk = 34
-                        namespace = "org.jetbrains.sample"
-                    }
                     iosArm64()
                 }
             }
@@ -62,22 +57,14 @@ class ExplicitApiExternalAndroidTargetIT : KGPBaseTest() {
     fun `test - strict - fails with implicit declarations in androidMain`(
         gradleVersion: GradleVersion, androidVersion: String, jdkVersion: JdkVersions.ProvidedJdk,
     ) {
-        project(
-            "empty",
-            gradleVersion,
-            buildOptions = defaultBuildOptions.copy(androidVersion = androidVersion),
-            buildJdk = jdkVersion.location,
+        externalAndroidLibraryProject(
+            gradleVersion = gradleVersion,
+            androidVersion = androidVersion,
+            jdkVersion = jdkVersion,
+            namespace = "org.jetbrains.sample",
         ) {
-            plugins {
-                kotlin("multiplatform")
-                id("com.android.kotlin.multiplatform.library")
-            }
             buildScriptInjection {
                 kotlinMultiplatform.apply {
-                    androidLibrary {
-                        compileSdk = 34
-                        namespace = "org.jetbrains.sample"
-                    }
                     iosArm64()
                     explicitApi()
                 }
@@ -122,22 +109,14 @@ class ExplicitApiExternalAndroidTargetIT : KGPBaseTest() {
     fun `test - strict - fails with implicit declarations in commonMain`(
         gradleVersion: GradleVersion, androidVersion: String, jdkVersion: JdkVersions.ProvidedJdk,
     ) {
-        project(
-            "empty",
-            gradleVersion,
-            buildOptions = defaultBuildOptions.copy(androidVersion = androidVersion),
-            buildJdk = jdkVersion.location,
+        externalAndroidLibraryProject(
+            gradleVersion = gradleVersion,
+            androidVersion = androidVersion,
+            jdkVersion = jdkVersion,
+            namespace = "org.jetbrains.sample",
         ) {
-            plugins {
-                kotlin("multiplatform")
-                id("com.android.kotlin.multiplatform.library")
-            }
             buildScriptInjection {
                 kotlinMultiplatform.apply {
-                    androidLibrary {
-                        compileSdk = 34
-                        namespace = "org.jetbrains.sample"
-                    }
                     iosArm64()
                     explicitApi()
                 }
@@ -180,22 +159,14 @@ class ExplicitApiExternalAndroidTargetIT : KGPBaseTest() {
     fun `test - warning - warns on implicit declarations in androidMain`(
         gradleVersion: GradleVersion, androidVersion: String, jdkVersion: JdkVersions.ProvidedJdk,
     ) {
-        project(
-            "empty",
-            gradleVersion,
-            buildOptions = defaultBuildOptions.copy(androidVersion = androidVersion),
-            buildJdk = jdkVersion.location,
+        externalAndroidLibraryProject(
+            gradleVersion = gradleVersion,
+            androidVersion = androidVersion,
+            jdkVersion = jdkVersion,
+            namespace = "org.jetbrains.sample",
         ) {
-            plugins {
-                kotlin("multiplatform")
-                id("com.android.kotlin.multiplatform.library")
-            }
             buildScriptInjection {
                 kotlinMultiplatform.apply {
-                    androidLibrary {
-                        compileSdk = 34
-                        namespace = "org.jetbrains.sample"
-                    }
                     iosArm64()
                     explicitApiWarning()
                 }
@@ -240,22 +211,14 @@ class ExplicitApiExternalAndroidTargetIT : KGPBaseTest() {
     fun `test - warning - warns on implicit declarations in commonMain`(
         gradleVersion: GradleVersion, androidVersion: String, jdkVersion: JdkVersions.ProvidedJdk,
     ) {
-        project(
-            "empty",
-            gradleVersion,
-            buildOptions = defaultBuildOptions.copy(androidVersion = androidVersion),
-            buildJdk = jdkVersion.location,
+        externalAndroidLibraryProject(
+            gradleVersion = gradleVersion,
+            androidVersion = androidVersion,
+            jdkVersion = jdkVersion,
+            namespace = "org.jetbrains.sample",
         ) {
-            plugins {
-                kotlin("multiplatform")
-                id("com.android.kotlin.multiplatform.library")
-            }
             buildScriptInjection {
                 kotlinMultiplatform.apply {
-                    androidLibrary {
-                        compileSdk = 34
-                        namespace = "org.jetbrains.sample"
-                    }
                     iosArm64()
                     explicitApiWarning()
                 }
@@ -298,22 +261,14 @@ class ExplicitApiExternalAndroidTargetIT : KGPBaseTest() {
     fun `test - warning - builds on explicit declarations`(
         gradleVersion: GradleVersion, androidVersion: String, jdkVersion: JdkVersions.ProvidedJdk,
     ) {
-        project(
-            "empty",
-            gradleVersion,
-            buildOptions = defaultBuildOptions.copy(androidVersion = androidVersion),
-            buildJdk = jdkVersion.location,
+        externalAndroidLibraryProject(
+            gradleVersion = gradleVersion,
+            androidVersion = androidVersion,
+            jdkVersion = jdkVersion,
+            namespace = "org.jetbrains.sample",
         ) {
-            plugins {
-                kotlin("multiplatform")
-                id("com.android.kotlin.multiplatform.library")
-            }
             buildScriptInjection {
                 kotlinMultiplatform.apply {
-                    androidLibrary {
-                        compileSdk = 34
-                        namespace = "org.jetbrains.sample"
-                    }
                     iosArm64()
                     explicitApiWarning()
                 }
@@ -355,22 +310,14 @@ class ExplicitApiExternalAndroidTargetIT : KGPBaseTest() {
     fun `test - strict - builds on explicit declarations`(
         gradleVersion: GradleVersion, androidVersion: String, jdkVersion: JdkVersions.ProvidedJdk,
     ) {
-        project(
-            "empty",
-            gradleVersion,
-            buildOptions = defaultBuildOptions.copy(androidVersion = androidVersion),
-            buildJdk = jdkVersion.location,
+        externalAndroidLibraryProject(
+            gradleVersion = gradleVersion,
+            androidVersion = androidVersion,
+            jdkVersion = jdkVersion,
+            namespace = "org.jetbrains.sample",
         ) {
-            plugins {
-                kotlin("multiplatform")
-                id("com.android.kotlin.multiplatform.library")
-            }
             buildScriptInjection {
                 kotlinMultiplatform.apply {
-                    androidLibrary {
-                        compileSdk = 34
-                        namespace = "org.jetbrains.sample"
-                    }
                     iosArm64()
                     explicitApi()
                 }
@@ -407,4 +354,38 @@ class ExplicitApiExternalAndroidTargetIT : KGPBaseTest() {
             }
         }
     }
+
+    private fun externalAndroidLibraryProject(
+        gradleVersion: GradleVersion,
+        androidVersion: String,
+        jdkVersion: JdkVersions.ProvidedJdk,
+        namespace: String,
+        androidLibraryConfiguration: String = "",
+        configureProject: TestProject.() -> Unit = {},
+    ): TestProject = project(
+        "empty",
+        gradleVersion = gradleVersion,
+        buildOptions = defaultBuildOptions.copy(androidVersion = androidVersion),
+        buildJdk = jdkVersion.location,
+    ) {
+        buildGradle.toFile().delete()
+        buildGradleKts.toFile().writeText(
+            """
+            plugins {
+                kotlin("multiplatform")
+                id("com.android.kotlin.multiplatform.library")
+            }
+
+            kotlin {
+                androidLibrary {
+                    compileSdk = 34
+                    namespace = "$namespace"
+            ${androidLibraryConfiguration.trim().prependIndent("        ")}
+                }
+            }
+            """.trimIndent()
+        )
+        configureProject()
+    }
+
 }
