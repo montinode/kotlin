@@ -11,11 +11,9 @@ import org.jetbrains.kotlin.builtins.UnsignedType
 import org.jetbrains.kotlin.incremental.components.InlineConstTracker
 import org.jetbrains.kotlin.ir.IrBuiltIns
 import org.jetbrains.kotlin.ir.IrElement
-import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.expressions.impl.IrCompositeImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrConstImpl
 import org.jetbrains.kotlin.ir.irAttribute
 import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.*
@@ -25,7 +23,6 @@ import org.jetbrains.kotlin.resolve.constants.evaluate.CompileTimeType
 import org.jetbrains.kotlin.resolve.constants.evaluate.canEvalOp
 import org.jetbrains.kotlin.resolve.constants.evaluate.evalBinaryOp
 import org.jetbrains.kotlin.resolve.constants.evaluate.evalUnaryOp
-import org.jetbrains.kotlin.utils.addToStdlib.runIf
 
 var IrConst.wasInlined: Boolean? by irAttribute(copyByDefault = true)
 
@@ -113,7 +110,7 @@ private class ConstInliner(
     }
 
     private fun evaluateBuiltinCall(expression: IrCall): IrConst? {
-        if (!expression.isCompileTimeBuiltinCall(irBuiltIns)) return null
+        if (!expression.isCompileTimeBuiltinCall()) return null
 
         val resultType = expression.type
         if (isFloatingPointOptimizationDisabled && resultType.isFloatOrDouble()) return null
@@ -248,7 +245,7 @@ private class ConstInliner(
             }
         }
 
-        private fun IrCall.isCompileTimeBuiltinCall(irBuiltIns: IrBuiltIns): Boolean {
+        private fun IrCall.isCompileTimeBuiltinCall(): Boolean {
             val owner = this.symbol.owner
 
             if (!owner.fromStdlib()) return false
