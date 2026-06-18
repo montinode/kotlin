@@ -19,7 +19,6 @@ import org.jetbrains.kotlin.analysis.api.projectStructure.KaModule
 import org.jetbrains.kotlin.library.components.KlibMetadataConstants.KLIB_METADATA_FILE_EXTENSION
 import org.jetbrains.kotlin.serialization.deserialization.METADATA_FILE_EXTENSION
 import org.jetbrains.kotlin.serialization.deserialization.builtins.BuiltInSerializerProtocol
-import org.jetbrains.kotlin.serialization.js.KotlinJavascriptSerializationUtil
 
 /**
  * Restricts the content scopes of [KaLibraryModule]s and [KaLibraryFallbackDependenciesModule]s to files which are relevant to the module's
@@ -78,18 +77,7 @@ private class KaFirCommonLibraryRestrictionScope(project: Project) : GlobalSearc
 }
 
 /**
- * Extensions of Kotlin-specific binary metadata files that do not belong on the JVM platform and must be excluded from the JVM library
- * restriction scope (see [KaFirJvmLibraryRestrictionScope]). `.kotlin_builtins` files are intentionally *not* listed here, as the JVM
- * platform loads built-in declarations (such as `Any`) from them.
- */
-private val jvmExcludedExtensions = hashSetOf(
-    METADATA_FILE_EXTENSION,
-    KLIB_METADATA_FILE_EXTENSION,
-    KotlinJavascriptSerializationUtil.CLASS_METADATA_FILE_EXTENSION,
-)
-
-/**
- * The JVM restriction scope is formulated as a *denylist* ([jvmExcludedExtensions]) rather than an allowlist of permitted extensions.
+ * The JVM restriction scope is formulated as a *denylist* rather than an allowlist of permitted extensions.
  *
  * An allowlist would have to enumerate every binary file type that can legitimately carry JVM declarations, which is not feasible: other
  * JVM languages contribute their own binary metadata file types that the Analysis API knows nothing about. For example, the Scala plugin
@@ -99,10 +87,17 @@ private val jvmExcludedExtensions = hashSetOf(
  * The restriction scope's actual purpose is narrow: to exclude *Kotlin-specific* files that should not be visible on the JVM platform. That
  * set is small, known to the Analysis API, and free of custom types, so a denylist captures it precisely while admitting `.tasty` and any
  * other language's JVM binary files for free.
+ *
+ * Note that `.kotlin_builtins` files are intentionally *not* excluded, as the JVM platform loads built-in declarations (such as `Any`) from
+ * them.
  */
 private class KaFirJvmLibraryRestrictionScope(project: Project) : GlobalSearchScope(project), KotlinIntersectionScopeMergeTarget {
-    override fun contains(file: VirtualFile): Boolean =
-        file.isDirectory || file.extension !in jvmExcludedExtensions
+    override fun contains(file: VirtualFile): Boolean {
+        if (file.isDirectory) return true
+
+        val extension = file.extension
+        return extension != METADATA_FILE_EXTENSION && extension != KLIB_METADATA_FILE_EXTENSION
+    }
 
     override fun isSearchInModuleContent(module: Module): Boolean = false
     override fun isSearchInLibraries(): Boolean = true

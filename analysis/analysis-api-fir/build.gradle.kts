@@ -30,7 +30,6 @@ dependencies {
     api(intellijCore())
     implementation(project(":analysis:analysis-api-platform-interface"))
     implementation(project(":analysis:symbol-light-classes"))
-    implementation(project(":js:js.serializer"))
     implementation(project(":native:native.config"))
     implementation(libs.caffeine)
     implementation(libs.opentelemetry.api)
