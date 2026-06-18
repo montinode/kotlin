@@ -387,12 +387,7 @@ class ObjCExportHeaderGeneratorTest(private val generator: HeaderGenerator) {
         doTest(headersTestDataDir.resolve("innerClass"))
     }
 
-    /**
-     * Works except properties sorting with special name [org.jetbrains.kotlin.name.Name.special]
-     * See KT-66510
-     */
     @Test
-    @TodoAnalysisApi
     fun `test - innerClassWithExtensionFunction`() {
         doTest(headersTestDataDir.resolve("innerClassWithExtensionFunction"))
     }
