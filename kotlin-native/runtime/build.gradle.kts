@@ -17,6 +17,9 @@ import org.jetbrains.kotlin.konan.target.Architecture as TargetArchitecture
 val kotlinVersion: String by rootProject.extra
 
 plugins {
+    id("common-configuration")
+    id("test-federation-convention")
+    id("com.autonomousapps.dependency-analysis")
     id("base")
     id("compile-to-bitcode")
 }

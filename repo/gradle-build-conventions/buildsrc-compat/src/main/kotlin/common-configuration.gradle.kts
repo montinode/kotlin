@@ -1,6 +1,7 @@
 import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.api.internal.file.collections.DefaultConfigurableFileCollection
+import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
 import org.jetbrains.kotlin.buildtools.api.ExperimentalBuildToolsApi
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.*
@@ -28,6 +29,8 @@ project.configureKotlinCompilationOptions()
 project.configureArtifacts()
 project.configureTests()
 project.checkNoApiDependenciesOnK1Modules()
+project.configureMigratedRootSettings()
+project.contributeToRootAggregateTasks()
 
 // There are problems with common build dir:
 //  - some tests (in particular js and binary-compatibility-validator depend on the fixed (default) location
@@ -467,6 +470,122 @@ afterEvaluate {
         friendPaths.setFrom(friendPathsWithoutVersion)
         doFirst {
             friendPaths.setFrom(realFriendPaths)
+        }
+    }
+}
+
+private val dependencyOnSnapshotReflectWhitelist = setOf(
+    ":kotlin-compiler",
+    ":kotlin-reflect",
+    ":tools:binary-compatibility-validator",
+    ":tools:kotlin-stdlib-gen",
+)
+
+// Per-project configuration migrated from the root `allprojects {}` block as part of the
+// Gradle Isolated Projects migration. This plugin is already applied to (almost) every project,
+// so running these bodies here is equivalent to the previous cross-project configuration.
+fun Project.configureMigratedRootSettings() {
+    if (kotlinBuildProperties.isInIdeaSync.get()) {
+        afterEvaluate {
+            configurations.all {
+                // Remove kotlin-compiler from dependencies during Idea import. KTI-1598
+                if (dependencies.removeIf { (it as? ProjectDependency)?.path == ":kotlin-compiler" }) {
+                    logger.warn("Removed :kotlin-compiler project dependency from \$this")
+                }
+            }
+        }
+    }
+
+    configurations.all {
+        val configuration = this
+        if (name != "compileClasspath") {
+            return@all
+        }
+        resolutionStrategy {
+            if (!kotlinBuildProperties.localBootstrap.getOrElse(false)) {
+                failOnNonReproducibleResolution()
+            }
+            eachDependency {
+                if (requested.group != "org.jetbrains.kotlin") {
+                    return@eachDependency
+                }
+
+                val isReflect = requested.name == "kotlin-reflect"
+                // More strict check for "compilerModules". We can't apply this check for all modules because it would force to
+                // exclude kotlin-reflect from transitive dependencies of kotlin-poet, ktor, com.android.tools.build:gradle, etc
+                if (project.path in @Suppress("UNCHECKED_CAST") (rootProject.extra["compilerModules"] as Array<String>)) {
+                    val expectedReflectVersion = commonDependencyVersion("org.jetbrains.kotlin", "kotlin-reflect")
+                    if (isReflect) {
+                        check(requested.version == expectedReflectVersion) {
+                            """
+                            \$configuration: 'kotlin-reflect' should have '\$expectedReflectVersion' version. But it was '\${requested.version}'
+                            Suggestions:
+                                1. Use 'commonDependency("org.jetbrains.kotlin:kotlin-reflect") { isTransitive = false }'
+                                2. Avoid 'kotlin-reflect' leakage from transitive dependencies with 'exclude("org.jetbrains.kotlin")'
+                        """.trimIndent()
+                        }
+                    }
+                    if (requested.name.startsWith("kotlin-stdlib")) {
+                        check(requested.version != expectedReflectVersion) {
+                            """
+                            \$configuration: '\${requested.name}' has a wrong version. It's not allowed to be '\$expectedReflectVersion'
+                            Suggestions:
+                                1. Most likely, it leaked from 'kotlin-reflect' transitive dependencies. Use 'isTransitive = false' for
+                                   'kotlin-reflect' dependencies
+                                2. Avoid '\${requested.name}' leakage from other transitive dependencies with 'exclude("org.jetbrains.kotlin")'
+                        """.trimIndent()
+                        }
+                    }
+                }
+                if (isReflect && project.path !in dependencyOnSnapshotReflectWhitelist) {
+                    check(requested.version != kotlinVersion) {
+                        """
+                        \$configuration: 'kotlin-reflect' is not allowed to have '\$kotlinVersion' version.
+                        Suggestion: Use 'commonDependency("org.jetbrains.kotlin:kotlin-reflect") { isTransitive = false }'
+                    """.trimIndent()
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Contributes this project to the root aggregate lifecycle tasks (`compileAll`, `installJps`, local `publish`)
+// without the root project iterating over `allprojects`/`subprojects` (incompatible with Isolated Projects).
+fun Project.contributeToRootAggregateTasks() {
+    if (this == rootProject) return
+
+    // Build cache tests don't work properly with KMP projects,
+    // so such projects are temporarily excluded from `compileAll` (KTI-2822)
+    val excludedNativePrefixes = listOf(
+        ":native",
+        ":libraries:tools:analysis-api-based-klib-reader:testProject",
+        ":plugins:plugin-sandbox:plugin-annotations",
+        ":kotlin-power-assert-runtime",
+    )
+    if (kotlinBuildProperties.isKotlinNativeEnabled.get() || excludedNativePrefixes.none { path.startsWith(it) }) {
+        val projectCompileAll = tasks.register("compileAll") {
+            dependsOn(tasks.withType<KotlinCompilationTask<*>>())
+            dependsOn(tasks.withType<JavaCompile>())
+        }
+        rootProject.tasks.named("compileAll").configure { dependsOn(projectCompileAll) }
+    }
+
+    // 'installJps' depends on publishToMavenLocal of every project that publishes Maven artifacts
+    plugins.withType<MavenPublishPlugin> {
+        rootProject.tasks.named("installJps").configure {
+            dependsOn(this@contributeToRootAggregateTasks.tasks.named("publishToMavenLocal"))
+        }
+    }
+
+    // 'mvnPublish' is required for local bootstrap: the root local 'publish' task (registered only for
+    // non-TeamCity builds) depends on each project's own 'publish' task.
+    if (!kotlinBuildProperties.isTeamcityBuild.get()) {
+        tasks.configureEach {
+            if (name == "publish") {
+                val projectPublishTask = this
+                rootProject.tasks.named("publish").configure { dependsOn(projectPublishTask) }
+            }
         }
     }
 }

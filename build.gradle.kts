@@ -4,7 +4,6 @@ import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootEnvSpec
 import org.jetbrains.kotlin.gradle.targets.wasm.yarn.WasmYarnPlugin
 import org.jetbrains.kotlin.gradle.targets.wasm.yarn.WasmYarnRootEnvSpec
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 import org.jetbrains.kotlin.testFederation.TestFederationInferAffectedDomainsTask
 
 buildscript {
@@ -72,7 +71,7 @@ plugins {
     `jvm-toolchains`
     alias(libs.plugins.gradle.node) apply false
     id("gradle-plugins-documentation") apply false
-    id("com.autonomousapps.dependency-analysis") version "3.6.1"
+    id("com.autonomousapps.dependency-analysis")
     id("project-tests-convention") apply false
     id("test-federation-convention") apply false
     id("test-data-manager-root")
@@ -195,101 +194,13 @@ val gradlePluginProjects = listOf(
     ":kotlin-dataframe"
 )
 
-val dependencyOnSnapshotReflectWhitelist = setOf(
-    ":kotlin-compiler",
-    ":kotlin-reflect",
-    ":tools:binary-compatibility-validator",
-    ":tools:kotlin-stdlib-gen",
-)
-
-allprojects {
-    if (!project.path.startsWith(":kotlin-ide.")) {
-        pluginManager.apply("common-configuration")
-        pluginManager.apply("test-federation-convention")
-    }
-    if (!project.path.startsWith(":compiler:build-tools")) {
-        pluginManager.apply("com.autonomousapps.dependency-analysis")
-    }
-    if (kotlinBuildProperties.isInIdeaSync.get()) {
-        afterEvaluate {
-            configurations.all {
-                // Remove kotlin-compiler from dependencies during Idea import. KTI-1598
-                if (dependencies.removeIf { (it as? ProjectDependency)?.path == ":kotlin-compiler" }) {
-                    logger.warn("Removed :kotlin-compiler project dependency from $this")
-                }
-            }
-        }
-    }
-
-    configurations.all {
-        val configuration = this
-        if (name != "compileClasspath") {
-            return@all
-        }
-        resolutionStrategy {
-            if (!kotlinBuildProperties.localBootstrap.getOrElse(false)) {
-                failOnNonReproducibleResolution()
-            }
-            eachDependency {
-                if (requested.group != "org.jetbrains.kotlin") {
-                    return@eachDependency
-                }
-
-                val isReflect = requested.name == "kotlin-reflect"
-                // More strict check for "compilerModules". We can't apply this check for all modules because it would force to
-                // exclude kotlin-reflect from transitive dependencies of kotlin-poet, ktor, com.android.tools.build:gradle, etc
-                if (project.path in @Suppress("UNCHECKED_CAST") (rootProject.extra["compilerModules"] as Array<String>)) {
-                    val expectedReflectVersion = commonDependencyVersion("org.jetbrains.kotlin", "kotlin-reflect")
-                    if (isReflect) {
-                        check(requested.version == expectedReflectVersion) {
-                            """
-                            $configuration: 'kotlin-reflect' should have '$expectedReflectVersion' version. But it was '${requested.version}'
-                            Suggestions:
-                                1. Use 'commonDependency("org.jetbrains.kotlin:kotlin-reflect") { isTransitive = false }'
-                                2. Avoid 'kotlin-reflect' leakage from transitive dependencies with 'exclude("org.jetbrains.kotlin")'
-                        """.trimIndent()
-                        }
-                    }
-                    if (requested.name.startsWith("kotlin-stdlib")) {
-                        check(requested.version != expectedReflectVersion) {
-                            """
-                            $configuration: '${requested.name}' has a wrong version. It's not allowed to be '$expectedReflectVersion'
-                            Suggestions:
-                                1. Most likely, it leaked from 'kotlin-reflect' transitive dependencies. Use 'isTransitive = false' for
-                                   'kotlin-reflect' dependencies
-                                2. Avoid '${requested.name}' leakage from other transitive dependencies with 'exclude("org.jetbrains.kotlin")'
-                        """.trimIndent()
-                        }
-                    }
-                }
-                if (isReflect && project.path !in dependencyOnSnapshotReflectWhitelist) {
-                    check(requested.version != kotlinVersion) {
-                        """
-                        $configuration: 'kotlin-reflect' is not allowed to have '$kotlinVersion' version.
-                        Suggestion: Use 'commonDependency("org.jetbrains.kotlin:kotlin-reflect") { isTransitive = false }'
-                    """.trimIndent()
-                    }
-                }
-            }
-        }
-    }
-    val mirrorRepo: String? = findProperty("maven.repository.mirror")?.toString()
-
-    repositories {
-        when (kotlinBuildProperties.stringProperty("attachedIntellijVersion").orNull) {
-            null -> {}
-            "master" -> {
-                maven { setUrl("https://www.jetbrains.com/intellij-repository/snapshots") }
-            }
-
-            else -> {
-                kotlinBuildLocalRepo(project)
-            }
-        }
-
-        mirrorRepo?.let(::maven)
-    }
-}
+// Common configuration that used to be applied to every project via an `allprojects {}` block is now applied
+// per-project through the `common-configuration` convention plugin, wired up by `gradle.lifecycle.beforeProject`
+// in settings.gradle.kts (compatible with Gradle Isolated Projects). The root project applies it explicitly here,
+// after its `extra` is populated, because `beforeProject` for the root runs before this script.
+// (`com.autonomousapps.dependency-analysis` is already applied to the root via the `plugins {}` block above.)
+pluginManager.apply("common-configuration")
+pluginManager.apply("test-federation-convention")
 
 gradle.taskGraph.whenReady {
     fun Boolean.toOnOff(): String = if (this) "on" else "off"
@@ -329,24 +240,9 @@ tasks.register("createIdeaHomeForTests") {
 
 tasks {
     register("compileAll") {
-        /*
-         * Build cache tests don't work properly with KMP projects,
-         * so such projects are temporarily excluded from them (KTI-2822)
-         */
-        val excludedNativePrefixes = listOf(
-            ":native",
-            ":libraries:tools:analysis-api-based-klib-reader:testProject",
-            ":plugins:plugin-sandbox:plugin-annotations",
-            ":kotlin-power-assert-runtime",
-        )
-        allprojects
-            .filter {
-                excludedNativePrefixes.none(it.path::startsWith) || kotlinBuildProperties.isKotlinNativeEnabled.get()
-            }
-            .forEach {
-                dependsOn(it.tasks.withType<KotlinCompilationTask<*>>())
-                dependsOn(it.tasks.withType<JavaCompile>())
-            }
+        // Each project contributes its own ":compileAll" task to this aggregate via the
+        // "common-configuration" convention plugin (see Project.contributeToRootAggregateTasks),
+        // so the root task no longer iterates over "allprojects" (incompatible with Isolated Projects).
     }
 
     named<Delete>("clean") {
@@ -610,9 +506,16 @@ tasks {
 
     testLifecycleTask("examplesTest") {
         dependsOn("dist")
-        project(":examples").subprojects.forEach { p ->
-            dependsOn("${p.path}:check")
-        }
+        // Explicit list of ":examples" subprojects (kept in sync with settings.gradle.kts) instead of
+        // iterating project(":examples").subprojects, which is incompatible with Isolated Projects.
+        listOf(
+            ":examples:annotation-processor-example",
+            ":examples:scripting-jvm-simple-script",
+            ":examples:scripting-jvm-simple-script-host",
+            ":examples:scripting-jvm-maven-deps",
+            ":examples:scripting-jvm-maven-deps-host",
+            ":examples:scripting-jvm-embeddable-host",
+        ).forEach { dependsOn("$it:check") }
     }
 
     testLifecycleTask("distTest") {
@@ -740,27 +643,17 @@ tasks {
 
     // 'mvnPublish' is required for local bootstrap
     if (!kotlinBuildProperties.isTeamcityBuild.get()) {
-        val localPublishTask = register("publish") {
+        register("publish") {
             group = "publishing"
             finalizedBy(mvnPublishTask)
-        }
-
-        subprojects {
-            tasks.configureEach {
-                if (name == "publish") {
-                    localPublishTask.get().dependsOn(this)
-                }
-            }
+            // Each project's own "publish" task is wired into this aggregate by the
+            // "common-configuration" convention plugin (see Project.contributeToRootAggregateTasks).
         }
     }
 
     register<Exec>("installJps") {
-        val installTask = this
-        allprojects {
-            plugins.withType<MavenPublishPlugin> {
-                installTask.dependsOn(tasks.named("publishToMavenLocal"))
-            }
-        }
+        // "publishToMavenLocal" dependencies are contributed per-project by the
+        // "common-configuration" convention plugin (see Project.contributeToRootAggregateTasks).
         group = "publishing"
         workingDir = rootProject.projectDir.resolve("libraries")
         commandLine = getMvnwCmd() + listOf("clean", "install", "-DskipTests", "-DexcludeTestModules=true")
