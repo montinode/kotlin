@@ -121,12 +121,10 @@ private class ConstInliner(
         val owner = expression.symbol.owner
         val name = owner.name.asString()
         val operands = expression.arguments.mapIndexed { index, argument ->
-            val const = argument?.evaluateAsConst()
-            // This hack is required because on fir2ir level defaults are represented as stubs.
-                ?: runIf(argument == null && owner.parameters[index].defaultValue != null && name == "trimMargin") {
-                    IrConstImpl.string(UNDEFINED_OFFSET, UNDEFINED_OFFSET, owner.parameters[index].type, "|")
-                }
-                ?: return null
+            if (argument == null) {
+                return@mapIndexed IrConstImpl.constNull(UNDEFINED_OFFSET, UNDEFINED_OFFSET, owner.parameters[index].type)
+            }
+            val const = argument.evaluateAsConst() ?: return null
             if (isFloatingPointOptimizationDisabled && const.type.isFloatOrDouble()) return null
             const
         }
