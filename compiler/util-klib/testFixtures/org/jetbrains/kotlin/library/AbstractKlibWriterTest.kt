@@ -29,7 +29,8 @@ abstract class AbstractKlibWriterTest<P : Parameters>(private val newParameters:
         open var ir: SerializedIrModule? = null
 
         // Note: There is always some randomly generated metadata. Because there is no way to generate a klib without metadata.
-        open var metadata: SerializedMetadata = KlibMockDSL.generateRandomMetadata()
+        var metadata: SerializedMetadata = KlibMockDSL.generateRandomMetadata()
+        var fileMappingTracker: KlibFragmentMappingTracker? = null
 
         class KlibDependency(val uniqueName: String, val path: String)
     }
@@ -119,7 +120,7 @@ abstract class AbstractKlibWriterTest<P : Parameters>(private val newParameters:
         val writtenKlib = writeKlib(parameters).unpackIfNecessary(parameters)
 
         val mockKlib = KlibMockDSL.mockKlib(createNewKlibDir()) {
-            metadata(parameters.metadata)
+            metadata(parameters.metadata, parameters.fileMappingTracker)
             parameters.ir?.let { serializedIrModule ->
                 irModule(serializedIrModule)
             }

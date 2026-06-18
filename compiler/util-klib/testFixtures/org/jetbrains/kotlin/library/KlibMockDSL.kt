@@ -159,8 +159,8 @@ fun KlibMockDSL.resources(init: KlibMockDSL.() -> Unit = {}): Unit = dir(KLIB_RE
 
 fun KlibMockDSL.metadata(init: KlibMockDSL.() -> Unit = {}): Unit = dir(KLIB_METADATA_FOLDER_NAME, init)
 
-fun KlibMockDSL.metadata(metadata: SerializedMetadata) {
-    KlibMetadataComponentWriterImpl(metadata).writeTo(KlibFile(rootDir.path))
+fun KlibMockDSL.metadata(metadata: SerializedMetadata, fileMappingTracker: KlibFragmentMappingTracker?) {
+    KlibMetadataComponentWriterImpl(metadata, fileMappingTracker).writeTo(KlibFile(rootDir.path))
 }
 
 fun KlibMockDSL.ir(init: KlibMockDSL.() -> Unit = {}): Unit = dir(KLIB_IR_FOLDER_NAME, init)

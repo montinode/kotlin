@@ -18,7 +18,7 @@ import org.jetbrains.kotlin.konan.file.File as KlibFile
  */
 internal class KlibMetadataComponentWriterImpl(
     private val metadata: SerializedMetadata,
-    private val fileMappingTracker: KlibFragmentMappingTracker? = null,
+    private val fileMappingTracker: KlibFragmentMappingTracker?,
 ) : KlibComponentWriter {
     override fun writeTo(root: KlibFile) {
         val layout = KlibMetadataComponentLayout(root)

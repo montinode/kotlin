@@ -24,7 +24,6 @@ import org.jetbrains.kotlin.konan.file.File as KlibFile
 class KlibWriterTest : AbstractKlibWriterTest<NewKlibWriterParameters>(::NewKlibWriterParameters) {
     class NewKlibWriterParameters : Parameters() {
         var targetNames: List<String> = emptyList()
-        var fileMappingTracker: KlibFragmentMappingTracker? = null
     }
 
     @Test
