@@ -8,6 +8,7 @@ package org.jetbrains.kotlin.gradle.targets.js.npm.tasks
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.provider.Property
 import org.gradle.api.tasks.*
 import org.gradle.work.DisableCachingByDefault
 import org.gradle.work.NormalizeLineEndings
@@ -16,6 +17,7 @@ import org.jetbrains.kotlin.gradle.targets.js.npm.KotlinNpmResolutionManager
 import org.jetbrains.kotlin.gradle.targets.js.npm.NodeJsEnvironmentTask
 import org.jetbrains.kotlin.gradle.targets.js.npm.PackageJsonFilesTask
 import org.jetbrains.kotlin.gradle.targets.js.npm.UsesKotlinNpmResolutionManager
+import org.jetbrains.kotlin.gradle.utils.property
 
 @DisableCachingByDefault
 abstract class KotlinNpmInstallTask :
@@ -46,11 +48,15 @@ abstract class KotlinNpmInstallTask :
 
     private val isOffline = project.gradle.startParameter.isOffline()
 
+    @get:Input
+    internal val withForce: Property<Boolean> = project.objects.property<Boolean>().convention(false)
+
     @TaskAction
     fun resolve() {
         val args = buildList {
             addAll(args)
             if (isOffline) add("--offline")
+            if (withForce.get()) add("--force")
         }
 
         npmResolutionManager.get()
