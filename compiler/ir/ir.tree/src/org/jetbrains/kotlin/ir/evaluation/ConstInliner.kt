@@ -74,7 +74,8 @@ private class ConstInliner(
             property != null -> {
                 if (!property.isConst) return evaluateBuiltinCall(expression)
 
-                val const = property.getter?.body?.statements?.singleOrNull() as? IrConst ?: return evaluateBuiltinCall(expression)
+                val const = (property.getter?.body?.statements?.singleOrNull() as? IrConst)?.shallowCopy()
+                    ?: return evaluateBuiltinCall(expression)
                 val receiver = expression.dispatchReceiver
                 if (receiver == null || receiver.shouldDropConstReceiver()) return const
 
