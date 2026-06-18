@@ -12,6 +12,7 @@ import org.jetbrains.kotlin.analysis.api.components.render
 import org.jetbrains.kotlin.analysis.api.export.utilities.isSuspend
 import org.jetbrains.kotlin.analysis.api.renderer.types.impl.KaTypeRendererForSource
 import org.jetbrains.kotlin.analysis.api.symbols.*
+import org.jetbrains.kotlin.analysis.api.symbols.markers.KaNamedSymbol
 import org.jetbrains.kotlin.analysis.api.types.KaTypeParameterType
 import org.jetbrains.kotlin.sir.*
 import org.jetbrains.kotlin.sir.providers.SirSession
@@ -160,8 +161,9 @@ internal open class SirFunctionFromKtSymbol(
         val forwardBridges = bridgeProxy?.let { proxy ->
             buildList {
                 addAll(proxy.createSirBridges(forwardKotlinCall))
-                if (needsNonVirtualForwardBridge() && !isAbstractKotlinMethod) {
-                    add(proxy.createDirectDispatchForwardBridge(ktSymbol.name?.asString().orEmpty(), forwardKotlinCall))
+                val ktSymbol = this@SirFunctionFromKtSymbol.ktSymbol
+                if (needsNonVirtualForwardBridge() && !isAbstractKotlinMethod && ktSymbol is KaNamedSymbol) {
+                    add(proxy.createDirectDispatchForwardBridge(ktSymbol.name.asString(), forwardKotlinCall))
                 }
             }
         }.orEmpty()
