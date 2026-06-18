@@ -13,8 +13,10 @@ See [java-flight-recorder/README.md](../java-flight-recorder/README.md) for avai
 ```kotlin
 id("test-inputs-check-v2")
 
+// all config options with their default values
 testInputsCheck {
-    failFast = true // false by default
+    enabled = true
+    failFast = false
 }
 ```
 
