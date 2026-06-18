@@ -49,6 +49,7 @@ object CommonExpressionCheckers : ExpressionCheckers() {
         FirSealedClassConstructorCallChecker,
         FirUninitializedEnumChecker,
         FirReifiedChecker,
+        FirExplicitTypeParametersChecker,
         FirSuspendCallChecker,
         FirLateinitIntrinsicApplicabilityChecker,
         FirLargeArityFunctionCallableReferenceChecker,

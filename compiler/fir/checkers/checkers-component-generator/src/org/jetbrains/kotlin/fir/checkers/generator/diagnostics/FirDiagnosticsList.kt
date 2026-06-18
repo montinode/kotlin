@@ -259,6 +259,9 @@ object DIAGNOSTICS_LIST : DiagnosticList("FirErrors") {
         val IMPLICIT_PROPERTY_TYPE_MAKES_BEHAVIOR_ORDER_DEPENDANT_ERROR by error<KtExpression>(PositioningStrategy.REFERENCED_NAME_BY_QUALIFIED) {
             parameter<FirPropertySymbol>("property")
         }
+        val CALLABLE_TYPE_PARAMETER_USAGE by info<KtExpression>(PositioningStrategy.REFERENCED_NAME_BY_QUALIFIED) {
+            parameter<String>("payload")
+        }
     }
 
     val SUPER by object : DiagnosticGroup("Super") {
@@ -2463,20 +2466,20 @@ private val exposedVisibilityDiagnosticInit: DiagnosticBuilder.() -> Unit = {
 }
 
 private inline fun <reified P : PsiElement> AbstractDiagnosticGroup.exposedVisibilityError(
-    positioningStrategy: PositioningStrategy = PositioningStrategy.DEFAULT
+    positioningStrategy: PositioningStrategy = PositioningStrategy.DEFAULT,
 ): PropertyDelegateProvider<Any?, ReadOnlyProperty<AbstractDiagnosticGroup, RegularDiagnosticData>> {
     return error<P>(positioningStrategy, exposedVisibilityDiagnosticInit)
 }
 
 private inline fun <reified P : PsiElement> AbstractDiagnosticGroup.exposedVisibilityWarning(
-    positioningStrategy: PositioningStrategy = PositioningStrategy.DEFAULT
+    positioningStrategy: PositioningStrategy = PositioningStrategy.DEFAULT,
 ): PropertyDelegateProvider<Any?, ReadOnlyProperty<AbstractDiagnosticGroup, RegularDiagnosticData>> {
     return warning<P>(positioningStrategy, exposedVisibilityDiagnosticInit)
 }
 
 private inline fun <reified P : PsiElement> AbstractDiagnosticGroup.exposedVisibilityDeprecationError(
     languageFeature: LanguageFeature,
-    positioningStrategy: PositioningStrategy = PositioningStrategy.DEFAULT
+    positioningStrategy: PositioningStrategy = PositioningStrategy.DEFAULT,
 ): PropertyDelegateProvider<Any?, ReadOnlyProperty<AbstractDiagnosticGroup, DeprecationDiagnosticData>> {
     return deprecationError<P>(languageFeature, positioningStrategy, exposedVisibilityDiagnosticInit)
 }

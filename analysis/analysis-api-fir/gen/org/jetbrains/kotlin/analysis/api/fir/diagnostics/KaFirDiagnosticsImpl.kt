@@ -607,6 +607,12 @@ internal class ImplicitPropertyTypeMakesBehaviorOrderDependantErrorImpl(
     token: KaLifetimeToken,
 ) : KaAbstractFirDiagnostic<KtExpression>(firDiagnostic, token), KaFirDiagnostic.ImplicitPropertyTypeMakesBehaviorOrderDependantError
 
+internal class CallableTypeParameterUsageImpl(
+    override val payload: String,
+    firDiagnostic: KtPsiDiagnostic,
+    token: KaLifetimeToken,
+) : KaAbstractFirDiagnostic<KtExpression>(firDiagnostic, token), KaFirDiagnostic.CallableTypeParameterUsage
+
 internal class SuperIsNotAnExpressionImpl(
     firDiagnostic: KtPsiDiagnostic,
     token: KaLifetimeToken,

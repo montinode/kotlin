@@ -8047,6 +8047,13 @@ private fun KaDiagnosticConverterBuilder.addConversions182() {
             token,
         )
     }
+    add(FirErrors.CALLABLE_TYPE_PARAMETER_USAGE) { firDiagnostic ->
+        CallableTypeParameterUsageImpl(
+            firDiagnostic.a,
+            firDiagnostic as KtPsiDiagnostic,
+            token,
+        )
+    }
     add(FirErrors.ANNOTATION_ARGUMENT_MUST_BE_KCLASS_LITERAL) { firDiagnostic ->
         AnnotationArgumentMustBeKclassLiteralImpl(
             firDiagnostic as KtPsiDiagnostic,

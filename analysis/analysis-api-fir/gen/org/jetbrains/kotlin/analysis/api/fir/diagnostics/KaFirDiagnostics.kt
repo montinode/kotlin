@@ -517,6 +517,11 @@ sealed interface KaFirDiagnostic<PSI : PsiElement> : KaDiagnosticWithPsi<PSI> {
         val property: KaVariableSymbol
     }
 
+    interface CallableTypeParameterUsage : KaFirDiagnostic<KtExpression> {
+        override val diagnosticClass get() = CallableTypeParameterUsage::class
+        val payload: String
+    }
+
     interface SuperIsNotAnExpression : KaFirDiagnostic<PsiElement> {
         override val diagnosticClass get() = SuperIsNotAnExpression::class
     }
