@@ -5,14 +5,13 @@
 
 package org.jetbrains.kotlin.gradle.android.externalAndroidTarget
 
-import com.android.build.api.dsl.androidLibrary
-import org.gradle.kotlin.dsl.kotlin
 import org.gradle.util.GradleVersion
 import org.jetbrains.kotlin.gradle.testbase.*
 import java.util.zip.ZipFile
 import kotlin.test.assertNotNull
 
-@AndroidTestVersions(minVersion = TestVersions.AGP.AGP_813)
+// Uses `com.android.kotlin.multiplatform.library`, requires AGP new DSL.
+@AndroidTestVersions(minVersion = TestVersions.AGP.AGP_92)
 @AndroidGradlePluginTests
 class AndroidLibraryWithJavaIT : KGPBaseTest() {
 
@@ -20,26 +19,13 @@ class AndroidLibraryWithJavaIT : KGPBaseTest() {
     fun `test - androidLibrary - withJava enabled`(
         gradleVersion: GradleVersion, androidVersion: String, jdkVersion: JdkVersions.ProvidedJdk,
     ) {
-        project(
-            "empty",
-            gradleVersion,
-            buildOptions = defaultBuildOptions.copy(androidVersion = androidVersion),
-            buildJdk = jdkVersion.location,
+        externalAndroidLibraryProject(
+            gradleVersion = gradleVersion,
+            androidVersion = androidVersion,
+            jdkVersion = jdkVersion,
+            namespace = "org.jetbrains.sample",
+            androidLibraryConfiguration = "withJava()",
         ) {
-            plugins {
-                kotlin("multiplatform")
-                id("com.android.kotlin.multiplatform.library")
-            }
-            buildScriptInjection {
-                kotlinMultiplatform.apply {
-                    androidLibrary {
-                        compileSdk = 34
-                        namespace = "org.jetbrains.sample"
-                        withJava()
-                    }
-                }
-            }
-
             javaSourcesDir("androidMain").resolve("sample/JavaClass.java").apply {
                 parent.toFile().mkdirs()
                 toFile().writeText(
@@ -83,25 +69,12 @@ class AndroidLibraryWithJavaIT : KGPBaseTest() {
     fun `test - androidLibrary - withJava disabled`(
         gradleVersion: GradleVersion, androidVersion: String, jdkVersion: JdkVersions.ProvidedJdk,
     ) {
-        project(
-            "empty",
+        externalAndroidLibraryProject(
             gradleVersion = gradleVersion,
-            buildOptions = defaultBuildOptions.copy(androidVersion = androidVersion),
-            buildJdk = jdkVersion.location,
+            androidVersion = androidVersion,
+            jdkVersion = jdkVersion,
+            namespace = "org.jetbrains.sample.options",
         ) {
-            plugins {
-                kotlin("multiplatform")
-                id("com.android.kotlin.multiplatform.library")
-            }
-            buildScriptInjection {
-                kotlinMultiplatform.apply {
-                    androidLibrary {
-                        compileSdk = 34
-                        namespace = "org.jetbrains.sample.options"
-                    }
-                }
-            }
-
             javaSourcesDir("androidMain").resolve("sample/JavaClass.java").apply {
                 parent.toFile().mkdirs()
                 toFile().writeText("package sample; public class JavaClass {}")
@@ -131,26 +104,13 @@ class AndroidLibraryWithJavaIT : KGPBaseTest() {
     fun `test - withJava enabled without Java sources`(
         gradleVersion: GradleVersion, androidVersion: String, jdkVersion: JdkVersions.ProvidedJdk,
     ) {
-        project(
-            "empty",
+        externalAndroidLibraryProject(
             gradleVersion = gradleVersion,
-            buildOptions = defaultBuildOptions.copy(androidVersion = androidVersion),
-            buildJdk = jdkVersion.location,
+            androidVersion = androidVersion,
+            jdkVersion = jdkVersion,
+            namespace = "org.jetbrains.sample.nojava",
+            androidLibraryConfiguration = "withJava()",
         ) {
-            plugins {
-                kotlin("multiplatform")
-                id("com.android.kotlin.multiplatform.library")
-            }
-            buildScriptInjection {
-                kotlinMultiplatform.apply {
-                    androidLibrary {
-                        compileSdk = 34
-                        namespace = "org.jetbrains.sample.nojava"
-                        withJava()
-                    }
-                }
-            }
-
             kotlinSourcesDir("androidMain").resolve("sample/OnlyKotlin.kt").apply {
                 parent.toFile().mkdirs()
                 toFile().writeText(
@@ -173,23 +133,15 @@ class AndroidLibraryWithJavaIT : KGPBaseTest() {
     fun `test - withJava enabled - androidMain Java sees declarations from commonMain and sharedMain`(
         gradleVersion: GradleVersion, androidVersion: String, jdkVersion: JdkVersions.ProvidedJdk,
     ) {
-        project(
-            "empty",
+        externalAndroidLibraryProject(
             gradleVersion = gradleVersion,
-            buildOptions = defaultBuildOptions.copy(androidVersion = androidVersion),
-            buildJdk = jdkVersion.location,
+            androidVersion = androidVersion,
+            jdkVersion = jdkVersion,
+            namespace = "org.jetbrains.sample.shared",
+            androidLibraryConfiguration = "withJava()",
         ) {
-            plugins {
-                kotlin("multiplatform")
-                id("com.android.kotlin.multiplatform.library")
-            }
             buildScriptInjection {
                 kotlinMultiplatform.apply {
-                    androidLibrary {
-                        compileSdk = 34
-                        namespace = "org.jetbrains.sample.shared"
-                        withJava()
-                    }
                     iosArm64()
 
                     val sharedMain = sourceSets.create("sharedMain").apply {
@@ -257,27 +209,13 @@ class AndroidLibraryWithJavaIT : KGPBaseTest() {
         androidVersion: String,
         jdkVersion: JdkVersions.ProvidedJdk,
     ) {
-        project(
-            "empty",
+        externalAndroidLibraryProject(
             gradleVersion = gradleVersion,
-            buildOptions = defaultBuildOptions.copy(androidVersion = androidVersion),
-            buildJdk = jdkVersion.location,
+            androidVersion = androidVersion,
+            jdkVersion = jdkVersion,
+            namespace = "org.jetbrains.sample.expectactual",
+            androidLibraryConfiguration = "withJava()",
         ) {
-            plugins {
-                kotlin("multiplatform")
-                id("com.android.kotlin.multiplatform.library")
-            }
-
-            buildScriptInjection {
-                kotlinMultiplatform.apply {
-                    androidLibrary {
-                        compileSdk = 34
-                        namespace = "org.jetbrains.sample.expectactual"
-                        withJava()
-                    }
-                }
-            }
-
             kotlinSourcesDir("commonMain").resolve("sample/PlatformGreeter.kt").apply {
                 parent.toFile().mkdirs()
                 toFile().writeText(
@@ -334,24 +272,18 @@ class AndroidLibraryWithJavaIT : KGPBaseTest() {
     fun `test - withJava enabled - androidHostTest Java test sees declarations from commonTest`(
         gradleVersion: GradleVersion, androidVersion: String, jdkVersion: JdkVersions.ProvidedJdk,
     ) {
-        project(
-            "empty",
+        externalAndroidLibraryProject(
             gradleVersion = gradleVersion,
-            buildOptions = defaultBuildOptions.copy(androidVersion = androidVersion),
-            buildJdk = jdkVersion.location,
+            androidVersion = androidVersion,
+            jdkVersion = jdkVersion,
+            namespace = "org.jetbrains.sample.hosttest",
+            androidLibraryConfiguration = """
+                withJava()
+                withHostTest {}
+            """.trimIndent(),
         ) {
-            plugins {
-                kotlin("multiplatform")
-                id("com.android.kotlin.multiplatform.library")
-            }
             buildScriptInjection {
                 kotlinMultiplatform.apply {
-                    androidLibrary {
-                        compileSdk = 34
-                        namespace = "org.jetbrains.sample.hosttest"
-                        withJava()
-                        withHostTest {}
-                    }
                     iosArm64()
                     sourceSets.getByName("androidHostTest").dependencies {
                         implementation("junit:junit:4.13.2")
@@ -403,26 +335,18 @@ class AndroidLibraryWithJavaIT : KGPBaseTest() {
         androidVersion: String,
         jdkVersion: JdkVersions.ProvidedJdk,
     ) {
-        project(
-            "empty",
+        externalAndroidLibraryProject(
             gradleVersion = gradleVersion,
-            buildOptions = defaultBuildOptions.copy(androidVersion = androidVersion),
-            buildJdk = jdkVersion.location,
+            androidVersion = androidVersion,
+            jdkVersion = jdkVersion,
+            namespace = "org.jetbrains.sample.devicetest",
+            androidLibraryConfiguration = """
+                withJava()
+                withDeviceTest {}
+            """.trimIndent(),
         ) {
-            plugins {
-                kotlin("multiplatform")
-                id("com.android.kotlin.multiplatform.library")
-            }
-
             buildScriptInjection {
                 kotlinMultiplatform.apply {
-                    androidLibrary {
-                        compileSdk = 34
-                        namespace = "org.jetbrains.sample.devicetest"
-                        withJava()
-                        withDeviceTest {}
-                    }
-
                     sourceSets.getByName("androidDeviceTest").dependencies {
                         implementation("junit:junit:4.13.2")
                     }
@@ -448,6 +372,39 @@ class AndroidLibraryWithJavaIT : KGPBaseTest() {
                 assertTasksExecuted(":compileAndroidDeviceTestJavaWithJavac")
             }
         }
+    }
+
+    private fun externalAndroidLibraryProject(
+        gradleVersion: GradleVersion,
+        androidVersion: String,
+        jdkVersion: JdkVersions.ProvidedJdk,
+        namespace: String,
+        androidLibraryConfiguration: String = "",
+        configureProject: TestProject.() -> Unit = {},
+    ): TestProject = project(
+        "empty",
+        gradleVersion = gradleVersion,
+        buildOptions = defaultBuildOptions.copy(androidVersion = androidVersion),
+        buildJdk = jdkVersion.location,
+    ) {
+        buildGradle.toFile().delete()
+        buildGradleKts.toFile().writeText(
+            """
+            plugins {
+                kotlin("multiplatform")
+                id("com.android.kotlin.multiplatform.library")
+            }
+
+            kotlin {
+                androidLibrary {
+                    compileSdk = 34
+                    namespace = "$namespace"
+            ${androidLibraryConfiguration.trim().prependIndent("        ")}
+                }
+            }
+            """.trimIndent()
+        )
+        configureProject()
     }
 
     private fun TestProject.assertAarContainsClass(aarPath: String, classPath: String) {
