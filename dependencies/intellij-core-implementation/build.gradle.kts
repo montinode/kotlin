@@ -13,7 +13,6 @@ dependencies {
     api("com.jetbrains.intellij.platform:util-rt:$intellijVersion") { isTransitive = false }
     api("com.jetbrains.intellij.platform:util-xml-dom:$intellijVersion") { isTransitive = false }
     api("com.jetbrains.intellij.java:java-frontback-psi-impl:$intellijVersion") { isTransitive = false }
-    api("com.jetbrains.intellij.java:java-indexing-impl:$intellijVersion") { isTransitive = false }
     api("com.jetbrains.intellij.java:java-psi-impl:$intellijVersion") { isTransitive = false }
     api("com.jetbrains.intellij.java:java-syntax:$intellijVersion") { isTransitive = false }
     api("com.jetbrains.intellij.platform:plugin-system-parser-impl:$intellijVersion") { isTransitive = false }
