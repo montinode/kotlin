@@ -29,6 +29,13 @@ import org.jetbrains.kotlin.utils.addToStdlib.runIf
 
 var IrConst.wasInlined: Boolean? by irAttribute(copyByDefault = true)
 
+/**
+ * Evaluates the given IR expression using constant folding.
+ * This function returns either
+ *  - [IrConst], if exression can be completly folded;
+ *  - [IrComposite], if expression is folded, but can't be completly eliminated because it has side effects;
+ *  - null, if the expression can't be folded.
+ */
 fun evaluate(
     expression: IrExpression,
     irFile: IrFile,
