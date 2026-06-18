@@ -15,6 +15,10 @@ import kotlin.test.assertNotNull
 @AndroidGradlePluginTests
 class AndroidLibraryWithJavaIT : KGPBaseTest() {
 
+    // Uses `com.android.kotlin.multiplatform.library`, requires AGP new DSL.
+    override val defaultBuildOptions: BuildOptions
+        get() = super.defaultBuildOptions.copy(enableLegacyAgpDsl = false)
+
     @GradleAndroidTest
     fun `test - androidLibrary - withJava enabled`(
         gradleVersion: GradleVersion, androidVersion: String, jdkVersion: JdkVersions.ProvidedJdk,
