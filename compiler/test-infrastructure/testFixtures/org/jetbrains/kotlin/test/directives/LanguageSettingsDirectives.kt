@@ -75,7 +75,7 @@ object LanguageSettingsDirectives : SimpleDirectivesContainer() {
     )
 
     val UNSTABLE_CAPTURE by stringDirective(
-        description = "Entries (+/-<fq.name>) extending or trimming the escaping functions allowlist (AnalysisFlags.escapingFunctionsAllowlist)"
+        description = "Fully-qualified names of functions that count as escaping (use + to add, - to remove)"
     )
 
     val IGNORE_DATA_FLOW_IN_ASSERT by directive(
