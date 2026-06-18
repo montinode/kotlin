@@ -32,6 +32,7 @@ import org.jetbrains.kotlin.test.model.TestModule
 import org.jetbrains.kotlin.test.model.nameWithoutExtension
 import org.jetbrains.kotlin.test.services.TestServices
 import org.jetbrains.kotlin.test.services.assertions
+import org.jetbrains.kotlin.test.services.isKtFile
 import org.jetbrains.kotlin.utils.addToStdlib.runIf
 import java.util.*
 
@@ -81,6 +82,9 @@ import java.util.*
  *
  * This approach is technically not very correct, but pragmatic and convenient, as we would otherwise have to define a separate syntax for
  * library modules.
+ *
+ * Other files marked with the `LIBRARY_RESOURCE` directive are embedded verbatim in the JAR (e.g. a mock Scala `.tasty` file), which allows
+ * testing that the library restriction scope admits binary file types from other JVM languages (see KT-86402).
  */
 abstract class AbstractContentAndResolutionScopesProvidersTest : AbstractAnalysisApiBasedTest() {
     private var refinerToRegister: DummyContentScopeRefiner = DummyContentScopeRefiner()
@@ -195,10 +199,19 @@ abstract class AbstractContentAndResolutionScopesProvidersTest : AbstractAnalysi
 
             // As noted in the class's KDoc, we have a special mapping for library files: `a.kt` corresponds to `a.class` for a class
             // declaration `class a` inside `a.kt`.
+            //
+            // Non-Kotlin library files (such as `LIBRARY_RESOURCE` files) may be embedded verbatim in the JAR and should be mapped by their
+            // exact name.
             ktTestFiles.map { ktTestFile ->
-                val virtualFile = binaryFiles
-                    .firstOrNull { binaryFile -> binaryFile.name == ktTestFile.testFile.nameWithoutExtension + ".class" }
-                    ?: error("No `.class` virtual file found for $ktTestFile from library module.")
+                val virtualFile = if (ktTestFile.testFile.isKtFile) {
+                    binaryFiles
+                        .firstOrNull { binaryFile -> binaryFile.name == ktTestFile.testFile.nameWithoutExtension + ".class" }
+                        ?: error("No `.class` virtual file found for $ktTestFile from library module.")
+                } else {
+                    binaryFiles
+                        .firstOrNull { binaryFile -> binaryFile.name == ktTestFile.testFile.name }
+                        ?: error("No virtual file found for $ktTestFile from library module.")
+                }
 
                 KtTestFileWithVirtualFile(ktTestFile, virtualFile)
             }

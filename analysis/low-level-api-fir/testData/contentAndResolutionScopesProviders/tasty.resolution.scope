@@ -1,0 +1,8 @@
+Resulting Resolution Scope:
+Module LIBRARY:
+    Foo.class
+    very.tasty
+Module MAIN:
+    main.kt
+    Foo.class
+    very.tasty
