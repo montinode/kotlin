@@ -12,7 +12,7 @@ class SerializedMetadata(
     val metadataVersion: IntArray,
 )
 
-interface SerializedFragment {
+sealed interface SerializedFragment {
     val content: ByteArray
 }
 
