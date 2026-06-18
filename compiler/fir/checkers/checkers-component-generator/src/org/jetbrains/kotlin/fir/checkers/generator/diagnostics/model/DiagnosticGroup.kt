@@ -36,12 +36,6 @@ abstract class AbstractDiagnosticGroup @PrivateForInline constructor(val name: S
     ) = diagnosticDelegateProvider<P>(Severity.WARNING, positioningStrategy, init)
 
     @OptIn(PrivateForInline::class)
-    internal inline fun <reified P : PsiElement> info(
-        positioningStrategy: PositioningStrategy = PositioningStrategy.DEFAULT,
-        crossinline init: DiagnosticBuilder.Regular.() -> Unit = {},
-    ) = diagnosticDelegateProvider<P>(Severity.INFO, positioningStrategy, init)
-
-    @OptIn(PrivateForInline::class)
     internal inline fun <reified P : PsiElement> deprecationError(
         featureForError: LanguageFeature,
         positioningStrategy: PositioningStrategy = PositioningStrategy.DEFAULT,
