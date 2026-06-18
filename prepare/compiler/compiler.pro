@@ -57,6 +57,17 @@
 -dontwarn org.xerial.snappy.SnappyBundleActivator
 -dontwarn gnu.trove.TObjectHashingStrategy
 
+# Section after upgrade to SDK 261 (to be investigated)
+-dontwarn java.nio.ByteBuffer
+-dontwarn java.nio.CharBuffer
+-dontwarn kotlinx.coroutines.CoroutineDispatcher
+# some +- widely used annotation, unclear where to take it properly
+-dontwarn fleet.util.multiplatform.Actual
+# some JDK 1.8 intellij modules illegally use List.removeLast()
+-dontwarn java.util.List
+# seems testonly method assertNoReferenceKept is absent
+-dontwarn com.intellij.openapi.util.ObjectNode
+
 # Some annotations from intellijCore/annotations.jar are not presented in org.jetbrains.annotations
 -dontwarn org.jetbrains.annotations.*
 
