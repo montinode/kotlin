@@ -717,8 +717,6 @@ internal fun IrDeclaration.renderOriginIfNonTrivial(options: DumpIrTreeOptions):
     val originsToSkipFromRendering: HashSet<IrDeclarationOrigin> = hashSetOf(IrDeclarationOrigin.DEFINED)
     if (!options.renderOriginForExternalDeclarations) {
         originsToSkipFromRendering.add(IrDeclarationOrigin.IR_EXTERNAL_DECLARATION_STUB)
-    }
-    if (!options.renderOriginForExternalJavaDeclarations) {
         originsToSkipFromRendering.add(IrDeclarationOrigin.IR_EXTERNAL_JAVA_DECLARATION_STUB)
     }
     return if (origin in originsToSkipFromRendering) "" else "$origin "
