@@ -560,7 +560,7 @@ fun GradleProject.addEcosystemPluginToBuildScriptCompilationClasspath(
 /**
  * This helper method works similar to "plugins {}" block in the build script; it resolves the POM pointer to the plugin jar and applies the plugin
  */
-fun GradleProject.plugins(build: PluginDependenciesSpec.() -> Unit) {
+fun TestProject.plugins(build: PluginDependenciesSpec.() -> Unit) {
     val spec = TestPluginDependenciesSpec()
     spec.build()
     transferPluginRepositoriesIntoBuildScript()
