@@ -45,6 +45,12 @@ fun configureTestTask(
         addAbsoluteDirectoryProperty(layout.buildDirectory, "test.instrumenter.build.dir")
         addLazyBooleanSystemProperty(testInputsCheck.failFast, "test.instrumenter.fail.fast")
 
+        if (testInputsCheck.skipTests.get()) {
+            checkIfTestsCanBeSkipped()
+            logger.warn("Skipping tests for task ${testTask.name}. Disable testInputsCheck.skipTests after you're done debugging!")
+            actions.clear()
+        }
+
         doFirst {
             declaredInputsFile.get().asFile.apply {
                 parentFile.mkdirs()
@@ -58,3 +64,19 @@ fun configureTestTask(
     }
 }
 
+fun Test.checkIfTestsCanBeSkipped() {
+    val jfrFile = javaFlightRecorder.jfrFile.singleFile
+    if (!jfrFile.exists()) {
+        error(buildString {
+            appendLine("Tests can't be skipped if the JFR snapshot doesn't exist!")
+            appendLine("Run your tests at least once to produce this file, than you will be able to skip them.")
+            appendLine("The JFR snapshot will appear here: ${jfrFile.absolutePath}")
+        })
+    }
+    if (kotlinBuildProperties.isTeamcityBuild.get()) {
+        error(buildString {
+            appendLine("Tests can't be skipped on TeamCity build, this feature is only for debugging!")
+            appendLine("Please set testInputsCheck.skipTests = false")
+        })
+    }
+}
