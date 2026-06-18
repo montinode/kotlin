@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -329,6 +329,7 @@ internal class PrimaryConstructorBuilder : AnnotatedAndDocumented(), PrimitiveBu
 
     fun propertyParameter(init: PropertyBuilder.() -> Unit): PropertyBuilder {
         val argBuilder = PropertyBuilder()
+        argBuilder.expectActual = ExpectActualModifier.Inherited(from = ::expectActual)
         parameters.add(argBuilder.apply(init))
         return argBuilder
     }
@@ -341,7 +342,15 @@ internal class PrimaryConstructorBuilder : AnnotatedAndDocumented(), PrimitiveBu
             visibility?.let { append("${it.name.lowercase()} ") }
             expectActual.modifier?.let { append(it).append(' ') }
             append("constructor")
-            append(parameters.joinToString(prefix = "(", postfix = ")") { it.build() })
+            val needNewLine = parameters.any { it is PropertyBuilder }
+
+            if (needNewLine) {
+                appendLine("(")
+                appendLine(parameters.joinToString(separator = ",$END_LINE") { it.build() }.shift())
+                append(")")
+            } else {
+                append(parameters.joinToString(prefix = "(", postfix = ")") { it.build() })
+            }
         }
     }
 }
@@ -484,6 +493,9 @@ internal class MethodBuilder : AnnotatedAndDocumented(), PrimitiveBuilder {
     val parameterType: String
         get() = signature?.parameterType ?: throwNotInitialized("type", "MethodParameterBuilder")
 
+    val extensionReceiver: String?
+        get() = signature?.extensionReceiver
+
     fun signature(init: MethodSignatureBuilder.() -> Unit): MethodSignatureBuilder {
         throwIfAlreadyInitialized(signature, "signature", "MethodBuilder")
         val signatureBuilder = MethodSignatureBuilder(::expectActual)
@@ -514,6 +526,10 @@ internal class MethodBuilder : AnnotatedAndDocumented(), PrimitiveBuilder {
 
     fun String.setAsBlockBody() {
         body = " {$END_LINE${this.shift()}$END_LINE}"
+    }
+
+    fun String.setAsBody() {
+        if (contains(END_LINE)) setAsBlockBody() else setAsExpressionBody()
     }
 }
 
@@ -551,9 +567,10 @@ internal class PropertyBuilder : AnnotatedAndDocumented(), PrimitiveBuilder, Pri
             val variableKeyword = if (isMutable) "var" else "val"
             append("$variableKeyword $name: $type")
             value?.let { append(" = ").append(value) }
-            if (getterBody != null) {
-                append("$END_LINE    get()")
-                append(getterBody)
+            getterBody?.let {
+                append("$END_LINE    get")
+                if (it.isNotEmpty()) append("()")
+                append(it)
             }
         }
     }

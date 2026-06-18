@@ -173,6 +173,10 @@ val jsMainSources by task<Sync> {
         exclude("Collections.kt")
         into("builtins")
     }
+    from("$jsDir/unsigned") {
+        exclude("UByteArray.kt", "UShortArray.kt", "UIntArray.kt", "ULongArray.kt")
+        into("unsigned")
+    }
 
     into(layout.buildDirectory.dir("jsMainSources"))
 }
