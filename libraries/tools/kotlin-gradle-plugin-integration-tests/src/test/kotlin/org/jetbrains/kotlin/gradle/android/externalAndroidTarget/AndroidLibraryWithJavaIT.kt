@@ -10,7 +10,7 @@ import org.jetbrains.kotlin.gradle.testbase.*
 import java.util.zip.ZipFile
 import kotlin.test.assertNotNull
 
-// Uses `com.android.kotlin.multiplatform.library`, requires AGP new DSL.
+// Used AGP 9.0 as the minimal stable version supported for the android library
 @AndroidTestVersions(minVersion = TestVersions.AGP.AGP_92)
 @AndroidGradlePluginTests
 class AndroidLibraryWithJavaIT : KGPBaseTest() {
