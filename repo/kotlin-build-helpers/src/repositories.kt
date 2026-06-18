@@ -115,6 +115,7 @@ fun RepositoryHandler.intellijDependencies() {
             content.includeModule("org.jetbrains.intellij.deps", "asm-all")
             content.includeModule("org.jetbrains.intellij.deps", "gradle-api")
             content.includeModule("org.jetbrains.intellij.deps", "rwmutex-idea")
+            content.includeModule("org.jetbrains.intellij.deps.jflex", "jflex")
             content.includeGroupByRegex("org.jetbrains.intellij.deps.fastutil.*")
             content.includeGroupByRegex("org.jetbrains.intellij.deps.jna.*")
             content.includeGroupByRegex("com.intellij.platform.*")
