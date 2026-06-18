@@ -23,7 +23,6 @@ class StarImportConflictTest : BaseCompilationTest() {
     @DisplayName("KT-85241: Adding a Java nested class that conflicts with a Kotlin star import should trigger an ambiguity error in IC")
     @TestMetadata("ic-scenarios/kt-85241/java-nested")
     fun testStarImportAmbiguityDetectedAfterAddingJavaNestedClass(strategyConfig: CompilerExecutionStrategyConfiguration) {
-        // Owner is a Java class -> JVM-only (JS/Wasm have no Java interop).
         jvmScenario(strategyConfig) {
             val mod = module("ic-scenarios/kt-85241/java-nested")
 
@@ -42,6 +41,7 @@ class StarImportConflictTest : BaseCompilationTest() {
     fun testNoOverInvalidationOnUnrelatedPackageDeclaration(scenario: ScenarioCreator) {
         scenario {
             val mod = module("ic-scenarios/kt-85241/unrelated-package-declaration")
+
             mod.replaceFileWithVersion("com/example/Unrelated.kt", "add-class")
             mod.compile {
                 assertCompiledSources("com/example/Unrelated.kt")
@@ -55,6 +55,7 @@ class StarImportConflictTest : BaseCompilationTest() {
     fun testStarImportAmbiguityWithDeeplyNestedClassImport(scenario: ScenarioCreator) {
         scenario {
             val mod = module("ic-scenarios/kt-85241/deeply-nested-class-import")
+
             mod.replaceFileWithVersion("com/example/OuterInner.kt", "add-nested-class")
             mod.compile {
                 expectFail()
@@ -69,6 +70,7 @@ class StarImportConflictTest : BaseCompilationTest() {
     fun testStarImportAmbiguityDetectedAfterAddingJavaStaticMethod(strategyConfig: CompilerExecutionStrategyConfiguration) {
         jvmScenario(strategyConfig) {
             val mod = module("ic-scenarios/kt-85241/java-static-method")
+
             mod.replaceFileWithVersion("com/example/SomeClass.java", "add-static-method")
             mod.compile {
                 expectFail()
@@ -84,6 +86,7 @@ class StarImportConflictTest : BaseCompilationTest() {
     fun testStarImportAmbiguityViaPackageStarImportFallback(scenario: ScenarioCreator) {
         scenario {
             val mod = module("ic-scenarios/kt-85241/package-import-fallback")
+
             mod.replaceFileWithVersion("another.kt", "add-nested-class")
             mod.compile {
                 expectFail()
