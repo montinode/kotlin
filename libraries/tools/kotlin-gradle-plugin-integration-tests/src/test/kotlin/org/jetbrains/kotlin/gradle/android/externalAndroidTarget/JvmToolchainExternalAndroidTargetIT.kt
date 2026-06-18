@@ -18,6 +18,10 @@ import kotlin.test.assertEquals
 @AndroidGradlePluginTests
 class JvmToolchainExternalAndroidTargetIT : KGPBaseTest() {
 
+    // Uses `com.android.kotlin.multiplatform.library`, requires AGP new DSL.
+    override val defaultBuildOptions: BuildOptions
+        get() = super.defaultBuildOptions.copy(enableLegacyAgpDsl = false)
+
     @GradleAndroidTest
     fun `test - jvmToolchain configures compiler arguments for androidLibrary and androidHostTest`(
         gradleVersion: GradleVersion,
