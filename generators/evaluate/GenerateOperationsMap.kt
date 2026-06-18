@@ -204,7 +204,6 @@ private fun getBinaryIrOperationMap(): List<Operation> {
     }
 
     addOperation(BuiltInOperatorNames.EQEQ, "Any")
-    addOperation(BuiltInOperatorNames.EQEQEQ, "Any")
 
     addOperation(BuiltInOperatorNames.IEEE754_EQUALS, PrimitiveType.FLOAT.typeName.asString())
     addOperation(BuiltInOperatorNames.IEEE754_EQUALS, PrimitiveType.DOUBLE.typeName.asString())

@@ -883,7 +883,6 @@ fun evalBinaryOp(name: String, leftType: CompileTimeType, left: Any, rightType: 
         ANY -> when (rightType) {
             ANY -> when (name) {
                 "EQEQ" -> return (left) == (right)
-                "EQEQEQ" -> return (left) === (right)
             }
             else -> {}
         }
@@ -1679,7 +1678,6 @@ private val knownOps = setOf(
     "kotlin/internal/ir/greaterOrEqual(LONG, LONG)",
     "kotlin/internal/ir/greaterOrEqual(DOUBLE, DOUBLE)",
     "kotlin/internal/ir/EQEQ(ANY, ANY)",
-    "kotlin/internal/ir/EQEQEQ(ANY, ANY)",
     "kotlin/internal/ir/ieee754equals(FLOAT, FLOAT)",
     "kotlin/internal/ir/ieee754equals(DOUBLE, DOUBLE)",
     "kotlin/internal/ir/ANDAND(BOOLEAN, BOOLEAN)",
