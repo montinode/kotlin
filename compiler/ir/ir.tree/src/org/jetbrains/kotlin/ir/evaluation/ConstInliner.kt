@@ -120,10 +120,8 @@ private class ConstInliner(
 
         val owner = expression.symbol.owner
         val name = owner.name.asString()
-        val operands = expression.arguments.mapIndexed { index, argument ->
-            if (argument == null) {
-                return@mapIndexed IrConstImpl.constNull(UNDEFINED_OFFSET, UNDEFINED_OFFSET, owner.parameters[index].type)
-            }
+        val operands = expression.arguments.mapNotNull { argument ->
+            if (argument == null) return@mapNotNull null
             val const = argument.evaluateAsConst() ?: return null
             if (isFloatingPointOptimizationDisabled && const.type.isFloatOrDouble()) return null
             const
@@ -177,7 +175,11 @@ private class ConstInliner(
         private val IrDeclarationWithName.callableId: CallableId?
             get() {
                 return when (val parent = this.parent) {
-                    is IrClass -> parent.classId?.let { CallableId(it, name) }
+                    is IrClass -> if (parent.isFacadeClass) {
+                        parent.packageFqName?.let { CallableId(it, name) }
+                    } else {
+                        parent.classId?.let { CallableId(it, name) }
+                    }
                     is IrPackageFragment -> CallableId(parent.packageFqName, name)
                     else -> null
                 }
