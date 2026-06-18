@@ -5,16 +5,21 @@
 
 package org.jetbrains.kotlin.library.impl
 
+import org.jetbrains.kotlin.incremental.components.ICFileMappingTracker
 import org.jetbrains.kotlin.library.SerializedMetadata
 import org.jetbrains.kotlin.library.components.KlibMetadataComponentLayout
 import org.jetbrains.kotlin.library.writer.KlibComponentWriter
+import java.io.File
+import kotlin.io.path.Path
+import kotlin.io.path.nameWithoutExtension
 import org.jetbrains.kotlin.konan.file.File as KlibFile
 
 /**
  * An implementation of [KlibComponentWriter] that writes [SerializedMetadata] to the constructed Klib library.
  */
 internal class KlibMetadataComponentWriterImpl(
-    private val metadata: SerializedMetadata
+    private val metadata: SerializedMetadata,
+    private val fileMappingTracker: ICFileMappingTracker? = null,
 ) : KlibComponentWriter {
     override fun writeTo(root: KlibFile) {
         val layout = KlibMetadataComponentLayout(root)
@@ -27,16 +32,24 @@ internal class KlibMetadataComponentWriterImpl(
             packageFragmentDir.mkdirs()
 
             val shortPackageName: String = packageFqName.substringAfterLast(".")
-            val packageFragmentParts: List<ByteArray> = metadata.fragments[index]
+            val packageFragmentsWithSourceFilesParts = metadata.fragmentsWithSourceFiles[index]
 
-            val padding: Int = packageFragmentParts.size.toString().length
+            val padding: Int = packageFragmentsWithSourceFilesParts.size.toString().length
             fun withPadding(packageFragmentPartIndex: Int) = String.format("%0${padding}d", packageFragmentPartIndex)
 
-            packageFragmentParts.forEachIndexed { packageFragmentPartIndex, packageFragmentPart ->
-                layout.getPackageFragmentFile(
+            packageFragmentsWithSourceFilesParts.forEachIndexed { packageFragmentPartIndex, packageFragmentWithSourceFiles ->
+                val (packageFragmentPart, sourceFilePart) = packageFragmentWithSourceFiles
+                val sourceFileName = sourceFilePart?.let { Path(it) }?.nameWithoutExtension
+                val packageFragmentFile = layout.getPackageFragmentFile(
                     packageFqName = packageFqName,
-                    partName = "${withPadding(packageFragmentPartIndex)}_$shortPackageName"
-                ).writeBytes(packageFragmentPart)
+                    partName = sourceFileName ?: "${withPadding(packageFragmentPartIndex)}_$shortPackageName"
+                )
+
+                packageFragmentFile.writeBytes(packageFragmentPart)
+
+                if (sourceFilePart != null) {
+                    fileMappingTracker?.recordSourceFilesToOutputFileMapping(listOf(File(sourceFilePart)), File(packageFragmentFile.path))
+                }
             }
         }
     }

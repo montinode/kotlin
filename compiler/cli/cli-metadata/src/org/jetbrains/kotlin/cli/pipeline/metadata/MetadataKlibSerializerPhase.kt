@@ -33,7 +33,7 @@ object MetadataKlibInMemorySerializerPhase : PipelinePhase<MetadataFrontendPipel
     override fun executePhase(input: MetadataFrontendPipelineArtifact): MetadataInMemorySerializationArtifact {
         (val firResult = frontendOutput, val configuration, val _ = sourceFiles) = input
         val metadataVersion = configuration.metadataVersion()
-        val fragments = mutableMapOf<String, MutableList<ByteArray>>()
+        val fragmentsWithSourceFiles = mutableMapOf<String, MutableList<Pair<ByteArray, String>>>()
 
         val analysisResult = firResult.outputs
         for (output in analysisResult) {
@@ -52,8 +52,9 @@ object MetadataKlibInMemorySerializerPhase : PipelinePhase<MetadataFrontendPipel
                         additionalMetadataProvider = null
                     ),
                     languageVersionSettings,
-                )
-                fragments.getOrPut(firFile.packageFqName.asString()) { mutableListOf() }.add(packageFragment.toByteArray())
+                )//TODO: check Fir.source
+                fragmentsWithSourceFiles.getOrPut(firFile.packageFqName.asString()) { mutableListOf() }
+                    .add(packageFragment.toByteArray() to firFile.sourceFile?.path!!)
             }
         }
 
@@ -65,16 +66,17 @@ object MetadataKlibInMemorySerializerPhase : PipelinePhase<MetadataFrontendPipel
         }
 
         val fragmentNames = mutableListOf<String>()
-        val fragmentParts = mutableListOf<List<ByteArray>>()
+        val fragmentWithSourceFileParts = mutableListOf<List<Pair<ByteArray, String>>>()
 
-        for ([fqName, fragment] in fragments.entries.sortedBy { it.key }) {
+        for ([fqName, fragment] in fragmentsWithSourceFiles.entries.sortedBy { it.key }) {
             fragmentNames += fqName
-            fragmentParts += fragment
+            fragmentWithSourceFileParts += fragment
             header.addPackageFragmentName(fqName)
         }
 
         val module = header.build().toByteArray()
-        val serializedMetadata = SerializedMetadata(module, fragmentParts, fragmentNames, metadataVersion.toArray())
+        val serializedMetadata =
+            SerializedMetadata(module, fragmentNames, metadataVersion.toArray(), fragmentWithSourceFileParts)
         return MetadataInMemorySerializationArtifact(serializedMetadata, configuration)
     }
 }

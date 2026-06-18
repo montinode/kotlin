@@ -7,10 +7,20 @@ package org.jetbrains.kotlin.library
 
 class SerializedMetadata(
     val module: ByteArray,
-    val fragments: List<List<ByteArray>>,
     val fragmentNames: List<String>,
     val metadataVersion: IntArray,
-)
+    val fragmentsWithSourceFiles: List<List<Pair<ByteArray, String?>>> = emptyList(),
+) {
+    constructor(
+        module: ByteArray,
+        fragments: List<List<ByteArray>>,
+        fragmentNames: List<String>,
+        metadataVersion: IntArray,
+    ) : this(module, fragmentNames, metadataVersion, fragments.map { fragment -> fragment.map { Pair(it, null) } })
+
+    val fragments: List<List<ByteArray>> =
+        fragmentsWithSourceFiles.map { fragmentsWithSourceFile -> fragmentsWithSourceFile.map { it.first } }
+}
 
 class SerializedDeclaration(val id: Int, val bytes: ByteArray) {
     val size = bytes.size

@@ -692,7 +692,7 @@ Caused by: java.lang.AssertionError: assert
     }
 
     fun testCommonFragmentsMetadataDestination() {
-        val metadataDir = compileSimpleCommonPlatformProject()
+        val metadataDir = compileSimpleCommonPlatformProject(inProcess = false)
 
         val library = KlibLoader { libraryPaths(metadataDir.resolve("common").absolutePath) }.load().librariesStdlibFirst.single()
         val klibMetadata = library.metadata
@@ -722,7 +722,7 @@ Caused by: java.lang.AssertionError: assert
      * the compiler behavior
      */
     fun testDummyFragmentIncrementalClasspathTest() {
-        val metadataDir = compileSimpleCommonPlatformProject()
+        val metadataDir = compileSimpleCommonPlatformProject(inProcess = false)
         val newCommonKt = tmpdir.resolve("new-common.kt").apply {
             writeText(
                 """
@@ -756,10 +756,36 @@ Caused by: java.lang.AssertionError: assert
         )
     }
 
+    fun testSuccessfulDummyFragmentIncrementalClasspathTest() {
+        val metadataDir = compileSimpleCommonPlatformProject(inProcess = false)
+        val newCommonKt = tmpdir.resolve("new-common.kt").apply {
+            writeText(
+                """
+                    fun test(x: Some) {
+                        x.foo() // should be visible
+                        baz() // should be visible
+                    }
+                """.trimIndent()
+            )
+        }
+        val newClassesDir = tmpdir.resolve("new-classes")
+        kotlincInProcess(
+            newCommonKt.absolutePath,
+            K2JVMCompilerArguments::destination.cliArgument, newClassesDir.absolutePath,
+            K2JVMCompilerArguments::multiPlatform.cliArgument,
+            K2JVMCompilerArguments::expectActualClasses.cliArgument,
+            K2JVMCompilerArguments::incrementalCompilation.cliArgument,
+            K2JVMCompilerArguments::fragments.cliArgument("common,platform"),
+            K2JVMCompilerArguments::fragmentSources.cliArgument("common:${newCommonKt.absolutePath}"),
+            K2JVMCompilerArguments::fragmentRefines.cliArgument("platform:common"),
+            K2JVMCompilerArguments::fragmentIncrementalClasspath.cliArgument("common:${metadataDir.resolve("common").absolutePath}"),
+        )
+    }
+
     /**
      * @return metadata output directory
      */
-    private fun compileSimpleCommonPlatformProject(): File {
+    private fun compileSimpleCommonPlatformProject(inProcess: Boolean): File {
         val commonKt = tmpdir.resolve("common.kt").apply {
             writeText(
                 """
@@ -785,8 +811,7 @@ Caused by: java.lang.AssertionError: assert
         val classesDir = tmpdir.resolve("classes")
         val metadataDir = tmpdir.resolve("common-metadata")
 
-        runProcess(
-            "kotlinc-jvm",
+        val args = arrayOf(
             commonKt.absolutePath,
             platformKt.absolutePath,
             K2JVMCompilerArguments::destination.cliArgument, classesDir.absolutePath,
@@ -797,6 +822,11 @@ Caused by: java.lang.AssertionError: assert
             K2JVMCompilerArguments::fragmentRefines.cliArgument("platform:common"),
             K2JVMCompilerArguments::commonFragmentsMetadataDestination.cliArgument(metadataDir.absolutePath),
         )
+
+        when (inProcess) {
+            true -> kotlincInProcess(*args)
+            false -> runProcess("kotlinc-jvm", *args)
+        }
         return metadataDir
     }
 }
