@@ -298,7 +298,7 @@ constructor(
         project.getKonanParallelThreads(),
         project.gradle.gradleUserHomeDir,
         project.layout.buildDirectory.get().asFile,
-        project.nativeProperties.enableReleaseBinaryCache.get(),
+        PropertiesProvider(project).nativeEnableReleaseBinaryCache,
     )
 
     override fun createCompilerArguments(context: CreateCompilerArgumentsContext) = context.create<K2NativeCompilerArguments> {
