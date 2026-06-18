@@ -420,9 +420,11 @@ class WasmCallableReferenceLowering(val backendContext: WasmBackendContext) : Fi
         isSuspend: Boolean,
         isKReference: Boolean,
         boundValueTypes: List<IrType>,
+        carriesContinuation: Boolean,
     ): String {
         val prefix = if (isKReference) "K" else ""
         val suspendPrefix = if (isSuspend) "Suspend" else ""
+        val continuationSuffix = if (carriesContinuation) "_cont" else ""
 
         val superClassSuffix = when (superClassType) {
             backendContext.wasmSymbols.reflectionSymbols.kFunctionImpl.defaultType -> "R"  // Reflection
@@ -436,7 +438,7 @@ class WasmCallableReferenceLowering(val backendContext: WasmBackendContext) : Fi
             "_bound${boundValueTypes.size}_$typeCodes"
         } else ""
 
-        return "${prefix}${suspendPrefix}Function${arity}${superClassSuffix}${boundInfo}"
+        return "${prefix}${suspendPrefix}Function${arity}${superClassSuffix}${boundInfo}${continuationSuffix}"
     }
 
     private fun createOrGetFunctionReferenceClass(functionReference: IrRichFunctionReference, irFile: IrFile): IrClass {
@@ -446,9 +448,26 @@ class WasmCallableReferenceLowering(val backendContext: WasmBackendContext) : Fi
         val isKReference = functionReference.isKReference
         val boundValueTypes = functionReference.boundValues.map { it.type.eraseIfReferenceType() }
 
+
+        // Distinguishes a continuation-carrying function reference (which also implements SuspendFunctionN)
+        // from an ordinary one of the same arity, so link-time dedup does not merge them.
+        //
+        // Reference A:
+        //   implements Function1
+        //
+        // Reference B:
+        //   implements Function1
+        //   implements SuspendFunction0
+
+        val carriesContinuation = functionReference.type.let { refType ->
+            refType is IrSimpleType &&
+                    (refType.arguments.getOrNull(refType.arguments.size - 2) as? IrTypeProjection)
+                        ?.type?.classOrNull == context.symbols.continuationClass
+        }
+
         val superInterfaceType = functionReference.type.removeProjectionsToMakeValidSuperType()
         val additionalInterfaces = getAdditionalInterfaces(functionReference)
-        val key = callableReferenceKey(superClass, arity, isSuspend, isKReference, boundValueTypes)
+        val key = callableReferenceKey(superClass, arity, isSuspend, isKReference, boundValueTypes, carriesContinuation)
 
         // Build the erased function type that matches what callRef expects.
         val anyNType = backendContext.irBuiltIns.anyNType
