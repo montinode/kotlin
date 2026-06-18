@@ -50,6 +50,12 @@ public class FirIdeNormalAnalysisSourceLikeModuleCreateSubtypingUnificationSubst
   }
 
   @Test
+  @TestMetadata("assignAllOnly.kt")
+  public void testAssignAllOnly() {
+    run("assignAllOnly.kt");
+  }
+
+  @Test
   @TestMetadata("boundedSubtypeAndSupertype.kt")
   public void testBoundedSubtypeAndSupertype() {
     run("boundedSubtypeAndSupertype.kt");
