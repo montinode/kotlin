@@ -46,13 +46,7 @@ class AnalysisApiBasedDtsGeneratorFacade(
         val moduleKind = configuration.moduleKind ?: ModuleKind.PLAIN
 
         val tsCompilationStrategy = testServices.moduleStructure.allDirectives[TS_COMPILATION_STRATEGY].last()
-        val translationModes = when (tsCompilationStrategy) {
-            TsCompilationStrategy.MERGED -> listOf(TranslationMode.FULL_DEV)
-            TsCompilationStrategy.EACH_FILE -> JsEnvironmentConfigurator
-                .getTranslationModesForTest(testServices, module)
-                .filter { !it.production }
-            TsCompilationStrategy.NONE -> testInfraError("${this::class} does not support TsCompilationStrategy.NONE")
-        }
+        val translationModes = JsEnvironmentConfigurator.getTypeScriptExportTranslationModes(testServices, module)
 
         val result = translationModes.associateWith { mode ->
             val config = TypeScriptExportConfig(
