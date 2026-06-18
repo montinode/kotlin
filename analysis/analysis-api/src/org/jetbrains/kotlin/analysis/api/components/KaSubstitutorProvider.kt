@@ -57,7 +57,7 @@ public interface KaSubstitutorProvider : KaSessionComponent {
 
     /**
      * Creates a [KaSubstitutor] which assigns type arguments such that, for each pair in [leftTypesToRightTypes],
-     * the left type is a subtype of the right type when substituted.
+     * the substituted left type is a subtype of the substituted right type.
      * Returns `null` if such an assignment is not possible.
      *
      * Note that when one type parameter is shared across several constraint pairs, all these pairs affect the resulting substitution
@@ -399,7 +399,7 @@ public fun createInheritanceTypeSubstitutor(subClass: KaClassSymbol, superClass:
 
 /**
  * Creates a [KaSubstitutor] which assigns type arguments such that, for each pair in [leftTypesToRightTypes],
- * the left type is a subtype of the right type when substituted.
+ * the substituted left type is a subtype of the substituted right type.
  * Returns `null` if such an assignment is not possible.
  *
  * Note that when one type parameter is shared across several constraint pairs, all these pairs affect the resulting substitution
