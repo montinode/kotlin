@@ -5,12 +5,13 @@
 
 package org.jetbrains.kotlin.library.impl
 
-import org.jetbrains.kotlin.library.KlibFragmentMappingTracker
 import org.jetbrains.kotlin.library.SerializedFragment
 import org.jetbrains.kotlin.library.SerializedFragmentWithSource
 import org.jetbrains.kotlin.library.SerializedMetadata
 import org.jetbrains.kotlin.library.components.KlibMetadataComponentLayout
 import org.jetbrains.kotlin.library.writer.KlibComponentWriter
+import org.jetbrains.kotlin.library.writer.KlibWrittenMetadataPackageFragmentTracker
+import java.io.File
 import org.jetbrains.kotlin.konan.file.File as KlibFile
 
 /**
@@ -18,7 +19,7 @@ import org.jetbrains.kotlin.konan.file.File as KlibFile
  */
 internal class KlibMetadataComponentWriterImpl(
     private val metadata: SerializedMetadata,
-    private val fileMappingTracker: KlibFragmentMappingTracker?,
+    private val fragmentTracker: KlibWrittenMetadataPackageFragmentTracker?,
 ) : KlibComponentWriter {
     override fun writeTo(root: KlibFile) {
         val layout = KlibMetadataComponentLayout(root)
@@ -43,10 +44,10 @@ internal class KlibMetadataComponentWriterImpl(
                 )
                 packageFragmentFile.writeBytes(packageFragmentPart.content)
 
-                if (fileMappingTracker != null && packageFragmentPart is SerializedFragmentWithSource) {
-                    fileMappingTracker.recordSourceFileToKlibFragmentMapping(
-                        packageFragmentPart.sourceFilePath?.let { KlibFile(it) },
-                        packageFragmentFile
+                if (fragmentTracker != null && packageFragmentPart is SerializedFragmentWithSource) {
+                    fragmentTracker.recordSourceFile(
+                        packageFragmentPart.sourceFilePath?.let { File(it) },
+                        packageFragmentFile.javaFile()
                     )
                 }
             }

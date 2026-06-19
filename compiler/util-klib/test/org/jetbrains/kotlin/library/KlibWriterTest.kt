@@ -9,6 +9,7 @@ import org.jetbrains.kotlin.library.KlibWriterTest.NewKlibWriterParameters
 import org.jetbrains.kotlin.library.components.KlibMetadataComponentLayout
 import org.jetbrains.kotlin.library.impl.BuiltInsPlatform
 import org.jetbrains.kotlin.library.writer.KlibWriter
+import org.jetbrains.kotlin.library.writer.KlibWrittenMetadataPackageFragmentTracker
 import org.jetbrains.kotlin.library.writer.includeIr
 import org.jetbrains.kotlin.library.writer.includeMetadata
 import org.jetbrains.kotlin.metadata.deserialization.MetadataVersion
@@ -203,17 +204,13 @@ class KlibWriterTest : AbstractKlibWriterTest<NewKlibWriterParameters>(::NewKlib
 
     @Test
     fun `Fragments source file reports`() {
-        val recordedMappings = mutableListOf<Pair<KlibFile?, KlibFile>>()
-        val tracker = object : KlibFragmentMappingTracker {
-            override fun recordSourceFileToKlibFragmentMapping(sourceFile: KlibFile?, outputFile: KlibFile) {
-                recordedMappings += sourceFile to outputFile
-            }
-        }
+        val recordedMappings = mutableListOf<Pair<File?, File>>()
+        val tracker = KlibWrittenMetadataPackageFragmentTracker { sourceFile, outputFile -> recordedMappings += sourceFile to outputFile }
 
         val content = ByteArray(10)
         val klibDir = writeKlib(
             NewKlibWriterParameters().apply {
-                fileMappingTracker = tracker
+                fragmentTracker = tracker
                 metadata = SerializedMetadata(
                     module = content,
                     fragments = listOf(
@@ -249,7 +246,7 @@ class KlibWriterTest : AbstractKlibWriterTest<NewKlibWriterParameters>(::NewKlib
         KlibWriter {
             format(if (parameters.nopack) KlibFormat.Directory else KlibFormat.ZipArchive)
 
-            includeMetadata(parameters.metadata, parameters.fileMappingTracker)
+            includeMetadata(parameters.metadata, parameters.fragmentTracker)
             includeIr(parameters.ir)
 
             manifest {
