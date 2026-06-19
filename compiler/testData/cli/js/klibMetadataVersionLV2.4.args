@@ -6,3 +6,6 @@ $TEMP_DIR$
 out
 -libraries
 $STDLIB_JS$
+
+-language-version
+2.4

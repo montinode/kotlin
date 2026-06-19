@@ -4,3 +4,6 @@ $TEMP_DIR$
 -Xtarget-platform=JVM,JS,WasmJs,WasmWasi,Native
 -cp
 $STDLIB_COMMON_PATH$
+
+-language-version
+2.4
