@@ -26,5 +26,6 @@ dependencies {
     runtimeOnly("com.jetbrains.intellij.platform:syntax-util:$intellijVersion") { isTransitive = false }
     runtimeOnly("com.jetbrains.intellij.platform:util-progress:$intellijVersion") { isTransitive = false }
     runtimeOnly("com.jetbrains.intellij.platform:util-coroutines:$intellijVersion") { isTransitive = false }
+    runtimeOnly("com.jetbrains.intellij.fleet:util-multiplatform:251.29188.40") { isTransitive = false }
     runtimeOnly(libs.opentelemetry.api) { isTransitive = false }
 }

@@ -61,11 +61,9 @@
 -dontwarn java.nio.ByteBuffer
 -dontwarn java.nio.CharBuffer
 -dontwarn kotlinx.coroutines.CoroutineDispatcher
-# some +- widely used annotation, unclear where to take it properly
--dontwarn fleet.util.multiplatform.Actual
-# some JDK 1.8 intellij modules illegally use List.removeLast()
+# some JDK 1.8 intellij modules illegally use List.removeLast(); it strikes in some CliTestGenerated.kt at least
 -dontwarn java.util.List
-# seems testonly method assertNoReferenceKept is absent
+# seems testonly method assertNoReferenceKept is absent, so it's probably safe to ignore this problem
 -dontwarn com.intellij.openapi.util.ObjectNode
 
 # Some annotations from intellijCore/annotations.jar are not presented in org.jetbrains.annotations
