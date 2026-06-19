@@ -329,7 +329,7 @@ internal open class FirTowerResolveTask(
                 )
             }
 
-            // NB: canBeValue means it can resolve to an object or companion object
+            // NB: accessedObjectSymbol != null means it can resolve to an object or companion object
             if (resolvedQualifier.accessedObjectSymbol != null && resolvedQualifier.typeArguments.isEmpty()) {
                 runResolverForExpressionReceiver(
                     info,
