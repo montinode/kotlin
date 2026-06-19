@@ -676,6 +676,8 @@ enum class LanguageFeature(
             )
         }
     },
+
+    HomePackageResolution(sinceVersion = null, issue = NO_ISSUE_SPECIFIED),
     ;
 
     constructor(

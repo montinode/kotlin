@@ -4349,6 +4349,10 @@ sealed interface KaFirDiagnostic<PSI : PsiElement> : KaDiagnosticWithPsi<PSI> {
         override val diagnosticClass get() = UnusedLambdaExpression::class
     }
 
+    interface HomePackageWouldResolveThis : KaFirDiagnostic<PsiElement> {
+        override val diagnosticClass get() = HomePackageWouldResolveThis::class
+    }
+
     interface ReturnNotAllowed : KaFirDiagnostic<KtReturnExpression> {
         override val diagnosticClass get() = ReturnNotAllowed::class
     }
