@@ -48,8 +48,14 @@ abstract class KotlinNpmInstallTask :
 
     private val isOffline = project.gradle.startParameter.isOffline()
 
-    @get:Input
+    @get:Internal // tracks below
     internal val withForce: Property<Boolean> = project.objects.property<Boolean>().convention(false)
+
+    init {
+        // When --force flag is set, task must re-run; when not set, use previous state
+        outputs.upToDateWhen { !withForce.get() }
+        outputs.doNotCacheIf("--force flag set, task must re-run") { withForce.get() }
+    }
 
     @TaskAction
     fun resolve() {
