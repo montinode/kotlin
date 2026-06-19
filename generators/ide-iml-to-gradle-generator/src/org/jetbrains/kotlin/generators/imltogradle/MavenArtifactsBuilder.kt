@@ -24,7 +24,7 @@ object MavenArtifactsBuilder {
     }
 
     private fun splitByCamelHumpsMergingNumbers(s: String): List<String> {
-        val words: List<String> = NameUtilCore.splitNameIntoWords(s).toList()
+        val words: List<String> = NameUtilCore.splitNameIntoWordList(s)
 
         val result = ArrayList<String>()
         var i = 0
