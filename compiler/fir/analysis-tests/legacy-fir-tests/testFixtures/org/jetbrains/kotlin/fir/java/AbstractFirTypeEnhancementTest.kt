@@ -10,14 +10,12 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.text.StringUtilRt
 import com.intellij.psi.PsiClass
-import com.intellij.psi.PsiElementFinder
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.PsiPackageStatement
 import com.intellij.psi.impl.PsiFileFactoryImpl
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.testFramework.LightVirtualFile
 import org.jetbrains.kotlin.ObsoleteTestInfrastructure
-import org.jetbrains.kotlin.asJava.finder.JavaElementFinder
 import org.jetbrains.kotlin.cli.jvm.compiler.*
 import org.jetbrains.kotlin.codegen.forTestCompile.ForTestCompileRuntime
 import org.jetbrains.kotlin.codegen.forTestCompile.JavaForeignAnnotationType
@@ -88,9 +86,7 @@ abstract class AbstractFirTypeEnhancementTest : KtUsefulTestCase() {
                 ConfigurationKind.JDK_NO_RUNTIME, TestJdkKind.FULL_JDK, classpath, listOf(javaFilesDir)
             ),
             EnvironmentConfigFiles.JVM_CONFIG_FILES
-        ).apply {
-            PsiElementFinder.EP.getPoint(project).unregisterExtension(JavaElementFinder::class.java)
-        }
+        )
     }
 
     @OptIn(ObsoleteTestInfrastructure::class)
