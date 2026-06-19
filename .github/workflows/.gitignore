@@ -1,0 +1,35 @@
+# Python
+.local/
+.venv/
+venv/
+python_history
+*.log
+
+# Node
+node_modules/
+npm-debug.log*
+yarn.lock
+
+# Android/Gradle
+.gradle/
+build/
+captures/
+*.apk
+
+# Termux / shells / random outputs
+downloads/
+*.tmp
+nohup.out
+
+# Env/tooling folders
+.nvm/
+.pyenv/
+
+# Keys/certs (never commit)
+*.pem
+*.key
+*.p12
+*.rsa
+
+# Misc
+.DS_Store
